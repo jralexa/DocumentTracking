@@ -1,0 +1,105 @@
+<?php
+
+namespace App\Models;
+
+use App\TransferStatus;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Model;
+
+class DocumentTransfer extends Model
+{
+    /** @use HasFactory<\Database\Factories\DocumentTransferFactory> */
+    use HasFactory;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
+    protected $fillable = [
+        'document_id',
+        'from_department_id',
+        'to_department_id',
+        'forwarded_by_user_id',
+        'accepted_by_user_id',
+        'status',
+        'remarks',
+        'forwarded_at',
+        'accepted_at',
+        'recalled_at',
+        'recalled_by_user_id',
+    ];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'status' => TransferStatus::class,
+            'forwarded_at' => 'datetime',
+            'accepted_at' => 'datetime',
+            'recalled_at' => 'datetime',
+        ];
+    }
+
+    /**
+     * Get the document for this transfer.
+     */
+    public function document(): BelongsTo
+    {
+        return $this->belongsTo(Document::class);
+    }
+
+    /**
+     * Get the originating department.
+     */
+    public function fromDepartment(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'from_department_id');
+    }
+
+    /**
+     * Get the destination department.
+     */
+    public function toDepartment(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'to_department_id');
+    }
+
+    /**
+     * Get the user who forwarded this transfer.
+     */
+    public function forwardedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'forwarded_by_user_id');
+    }
+
+    /**
+     * Get the user who accepted this transfer.
+     */
+    public function acceptedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'accepted_by_user_id');
+    }
+
+    /**
+     * Get the user who recalled this transfer.
+     */
+    public function recalledBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'recalled_by_user_id');
+    }
+
+    /**
+     * Get remarks attached to this transfer.
+     */
+    public function remarksThread(): HasMany
+    {
+        return $this->hasMany(DocumentRemark::class, 'document_transfer_id');
+    }
+}
