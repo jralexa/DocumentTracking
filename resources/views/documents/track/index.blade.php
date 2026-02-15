@@ -103,7 +103,38 @@
                 <section class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <article class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
                         <header class="border-b border-gray-200 px-4 py-3">
-                            <h3 class="font-semibold text-gray-900">Copy Inventory</h3>
+                            <h3 class="font-semibold text-gray-900">Attachments</h3>
+                        </header>
+                        <ul class="divide-y divide-gray-100">
+                            @forelse ($document->attachments as $attachment)
+                                <li class="px-4 py-3 text-sm text-gray-700">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <div>
+                                            <p class="font-medium text-gray-900">{{ $attachment->original_name }}</p>
+                                            <p class="text-xs text-gray-500">
+                                                {{ number_format(($attachment->size_bytes ?? 0) / 1024, 1) }} KB
+                                                @if ($attachment->uploadedBy)
+                                                    - uploaded by {{ $attachment->uploadedBy->name }}
+                                                @endif
+                                            </p>
+                                        </div>
+                                        <a
+                                            href="{{ route('documents.attachments.download', [$document, $attachment]) }}"
+                                            class="inline-flex items-center rounded-md border border-gray-300 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50"
+                                        >
+                                            Download
+                                        </a>
+                                    </div>
+                                </li>
+                            @empty
+                                <li class="px-4 py-6 text-sm text-gray-500">No attachments uploaded.</li>
+                            @endforelse
+                        </ul>
+                    </article>
+
+                    <article class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                        <header class="border-b border-gray-200 px-4 py-3">
+                            <h3 class="font-semibold text-gray-900">Active Copy Inventory</h3>
                         </header>
                         <ul class="divide-y divide-gray-100">
                             @forelse ($document->copies as $copy)
@@ -120,10 +151,10 @@
 
                     <article class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
                         <header class="border-b border-gray-200 px-4 py-3">
-                            <h3 class="font-semibold text-gray-900">Custody Records</h3>
+                            <h3 class="font-semibold text-gray-900">Current Custody Records</h3>
                         </header>
                         <ul class="divide-y divide-gray-100">
-                            @forelse ($document->custodies->sortByDesc('id')->take(8) as $custody)
+                            @forelse ($document->custodies->sortByDesc('id') as $custody)
                                 <li class="px-4 py-3 text-sm text-gray-700">
                                     <p class="font-medium text-gray-900">{{ $custody->version_type->value }} - {{ $custody->status }}</p>
                                     <p>{{ $custody->department?->name ?? 'Unknown Department' }}</p>

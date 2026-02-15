@@ -89,7 +89,15 @@ class DocumentTrackController extends Controller
     protected function internalTrackingRelations(): array
     {
         return [
+            'copies' => fn ($query) => $query
+                ->where('is_discarded', false)
+                ->latest('id'),
             'copies.department',
+            'attachments' => fn ($query) => $query->latest('id'),
+            'attachments.uploadedBy',
+            'custodies' => fn ($query) => $query
+                ->where('is_current', true)
+                ->latest('id'),
             'custodies.department',
             'custodies.user',
         ];

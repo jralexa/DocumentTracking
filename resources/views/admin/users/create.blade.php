@@ -6,7 +6,9 @@
     </x-slot>
 
     <div class="py-6">
-        <div class="mx-auto max-w-3xl sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-3xl space-y-4 sm:px-6 lg:px-8">
+            @include('admin.users.partials.tabs')
+
             <section class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                 <form method="POST" action="{{ route('admin.users.store') }}" class="space-y-4">
                     @csrf

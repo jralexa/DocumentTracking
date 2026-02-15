@@ -1,6 +1,8 @@
 <?php
 
+use App\DocumentWorkflowStatus;
 use App\Models\Department;
+use App\Models\Document;
 use App\Models\User;
 use App\Notifications\AdminUserCreatedNotification;
 use App\UserRole;
@@ -92,4 +94,36 @@ test('admin can reset user password and email a new temporary password', functio
     expect($managedUser->password)->not->toBe($oldPasswordHash);
 
     Notification::assertSentTo($managedUser, AdminUserCreatedNotification::class);
+});
+
+test('admin cannot change user department while user has active for action workload', function () {
+    $oldDepartment = Department::factory()->create();
+    $newDepartment = Department::factory()->create();
+
+    $admin = User::factory()->create([
+        'role' => UserRole::Admin,
+        'department_id' => $oldDepartment->id,
+    ]);
+
+    $managedUser = User::factory()->create([
+        'role' => UserRole::Regular,
+        'department_id' => $oldDepartment->id,
+    ]);
+
+    Document::factory()->create([
+        'current_department_id' => $oldDepartment->id,
+        'current_user_id' => $managedUser->id,
+        'status' => DocumentWorkflowStatus::OnQueue,
+    ]);
+
+    $response = $this->actingAs($admin)->put(route('admin.users.update', $managedUser), [
+        'name' => $managedUser->name,
+        'email' => $managedUser->email,
+        'role' => $managedUser->role->value,
+        'department_id' => $newDepartment->id,
+    ]);
+
+    $response->assertSessionHasErrors('department_id');
+    $response->assertSessionHas('department_reassignment_blockers');
+    expect($managedUser->fresh()->department_id)->toBe($oldDepartment->id);
 });

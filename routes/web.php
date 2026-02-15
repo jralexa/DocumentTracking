@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentMonthlyReportController;
 use App\Http\Controllers\DocumentAnalyticsReportController;
+use App\Http\Controllers\DocumentAttachmentController;
 use App\Http\Controllers\DocumentCaseController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DocumentCustodyController;
@@ -48,18 +49,21 @@ Route::middleware(['auth', 'password.changed', 'can:documents.process'])->group(
     Route::get('/documents/queues', [DocumentQueueController::class, 'index'])->name('documents.queues.index');
     Route::post('/documents/{document}/accept', [DocumentWorkflowController::class, 'accept'])->name('documents.accept');
     Route::post('/documents/{document}/forward', [DocumentWorkflowController::class, 'forward'])->name('documents.forward');
+    Route::post('/documents/{document}/complete', [DocumentWorkflowController::class, 'complete'])->name('documents.complete');
     Route::post('/transfers/{transfer}/recall', [DocumentWorkflowController::class, 'recall'])->name('documents.recall');
     Route::get('/documents/{document}/split', [DocumentSplitController::class, 'create'])->name('documents.split.create');
     Route::post('/documents/{document}/split', [DocumentSplitController::class, 'store'])->name('documents.split.store');
 
     Route::prefix('custody')->name('custody.')->group(function () {
         Route::get('/originals', [DocumentCustodyController::class, 'originals'])->name('originals.index');
+        Route::post('/originals/{document}/release', [DocumentCustodyController::class, 'releaseOriginal'])->name('originals.release');
         Route::get('/copies', [DocumentCustodyController::class, 'copies'])->name('copies.index');
     });
 });
 
 Route::middleware(['auth', 'password.changed', 'can:documents.view'])->group(function () {
     Route::get('/documents', [DocumentListController::class, 'index'])->name('documents.index');
+    Route::get('/documents/{document}/attachments/{attachment}', [DocumentAttachmentController::class, 'download'])->name('documents.attachments.download');
     Route::get('/cases', [DocumentCaseController::class, 'index'])->name('cases.index');
     Route::get('/cases/{documentCase}', [DocumentCaseController::class, 'show'])->name('cases.show');
 });
@@ -73,12 +77,15 @@ Route::middleware(['auth', 'password.changed', 'can:documents.manage'])->group(f
 
 Route::middleware(['auth', 'password.changed', 'can:documents.export'])->group(function () {
     Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('/', fn () => redirect()->route('reports.departments.monthly'))->name('index');
+
         Route::prefix('departments')->name('departments.')->group(function () {
             Route::get('/monthly', [DepartmentMonthlyReportController::class, 'index'])->name('monthly');
             Route::get('/monthly/export', [DepartmentMonthlyReportController::class, 'export'])->name('monthly.export');
         });
 
         Route::get('/aging-overdue', [DocumentAnalyticsReportController::class, 'aging'])->name('aging-overdue');
+        Route::get('/sla-compliance', [DocumentAnalyticsReportController::class, 'slaCompliance'])->name('sla-compliance');
         Route::get('/performance', [DocumentAnalyticsReportController::class, 'performance'])->name('performance');
         Route::get('/custody', [DocumentAnalyticsReportController::class, 'custody'])->name('custody');
     });

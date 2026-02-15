@@ -21,13 +21,10 @@
     $custodyCopiesRoute = Route::has('custody.copies.index') ? route('custody.copies.index') : null;
     $custodyReturnablesRoute = Route::has('custody.returnables.index') ? route('custody.returnables.index') : null;
     $monthlyReportRoute = Route::has('reports.departments.monthly') ? route('reports.departments.monthly') : null;
-    $agingReportRoute = Route::has('reports.aging-overdue') ? route('reports.aging-overdue') : null;
-    $performanceReportRoute = Route::has('reports.performance') ? route('reports.performance') : null;
-    $custodyReportRoute = Route::has('reports.custody') ? route('reports.custody') : null;
+    $reportsIndexRoute = Route::has('reports.index') ? route('reports.index') : $monthlyReportRoute;
     $casesIndexRoute = Route::has('cases.index') ? route('cases.index') : null;
     $adminOrganizationRoute = Route::has('admin.organization.index') ? route('admin.organization.index') : null;
     $adminUsersRoute = Route::has('admin.users.index') ? route('admin.users.index') : null;
-    $adminRolePermissionsRoute = Route::has('admin.roles-permissions.index') ? route('admin.roles-permissions.index') : null;
 
     $sections = [];
 
@@ -91,10 +88,7 @@
         $sections[] = [
             'title' => 'Reports',
             'items' => [
-                ['label' => 'Monthly Department Report', 'href' => $monthlyReportRoute, 'active' => request()->routeIs('reports.departments.monthly')],
-                ['label' => 'Aging / Overdue Report', 'href' => $agingReportRoute, 'active' => request()->routeIs('reports.aging-overdue')],
-                ['label' => 'Performance Report', 'href' => $performanceReportRoute, 'active' => request()->routeIs('reports.performance')],
-                ['label' => 'Custody Report', 'href' => $custodyReportRoute, 'active' => request()->routeIs('reports.custody')],
+                ['label' => 'Reports', 'href' => $reportsIndexRoute, 'active' => request()->routeIs('reports.*')],
             ],
         ];
     }
@@ -104,8 +98,7 @@
             'title' => 'Administration',
             'items' => [
                 ['label' => 'Organization', 'href' => $adminOrganizationRoute, 'active' => request()->routeIs('admin.organization.*') || request()->routeIs('admin.departments.*') || request()->routeIs('admin.districts.*') || request()->routeIs('admin.schools.*')],
-                ['label' => 'Users', 'href' => $adminUsersRoute, 'active' => request()->routeIs('admin.users.*')],
-                ['label' => 'Roles / Permissions', 'href' => $adminRolePermissionsRoute, 'active' => request()->routeIs('admin.roles-permissions.*')],
+                ['label' => 'Users', 'href' => $adminUsersRoute, 'active' => request()->routeIs('admin.users.*') || request()->routeIs('admin.roles-permissions.*')],
                 ['label' => 'System Logs', 'href' => null, 'active' => false],
                 ['label' => 'Settings', 'href' => null, 'active' => false],
             ],
@@ -127,7 +120,10 @@
                 @if (strtolower($section['title']) !== 'dashboard')
                     <p class="px-3 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ $section['title'] }}</p>
                 @endif
-                <div class="mt-2 space-y-1">
+                <div @class([
+                    'mt-2 space-y-1',
+                    'ml-3 border-l border-slate-200 pl-3' => strtolower($section['title']) !== 'dashboard',
+                ])>
                     @if ($singleItem['href'])
                         <a
                             href="{{ $singleItem['href'] }}"
@@ -169,7 +165,7 @@
                 </button>
 
                 <div
-                    class="mt-2 space-y-1"
+                    class="mt-2 ml-3 space-y-1 border-l border-slate-200 pl-3"
                     x-show="open"
                     x-transition:enter="transition ease-out duration-150"
                     x-transition:enter-start="opacity-0 -translate-y-1"

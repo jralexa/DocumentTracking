@@ -48,6 +48,8 @@ class StoreDocumentRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:2000'],
             'item_name' => ['nullable', 'string', 'max:255'],
             'initial_remarks' => ['nullable', 'string', 'max:1000'],
+            'attachments' => ['nullable', 'array', 'max:10'],
+            'attachments.*' => ['file', 'max:10240', 'mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx'],
             'is_returnable' => ['nullable', 'boolean'],
             'return_deadline' => ['nullable', 'date', 'required_if:is_returnable,1'],
         ];

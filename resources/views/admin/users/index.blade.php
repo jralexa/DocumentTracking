@@ -6,7 +6,9 @@
     </x-slot>
 
     <div class="py-6">
-        <div class="mx-auto max-w-6xl sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-7xl space-y-4 sm:px-6 lg:px-8">
+            @include('admin.users.partials.tabs')
+
             <section class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                 <div class="mb-4 flex items-center justify-between">
                     <p class="text-sm text-gray-600">Create users per role/department so you can test role-based workflow behavior.</p>

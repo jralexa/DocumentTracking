@@ -5,6 +5,12 @@
 
     <div class="py-6">
         <div class="mx-auto max-w-7xl space-y-5 sm:px-6 lg:px-8">
+            @if ($errors->has('release_original'))
+                <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    {{ $errors->first('release_original') }}
+                </div>
+            @endif
+
             <section class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
                 <form method="GET" action="{{ route('custody.originals.index') }}" class="grid grid-cols-1 gap-3 md:grid-cols-4">
                     <div class="md:col-span-2">
@@ -38,6 +44,7 @@
                                 <th class="px-4 py-3 text-left font-semibold text-gray-700">Custodian</th>
                                 <th class="px-4 py-3 text-left font-semibold text-gray-700">Location</th>
                                 <th class="px-4 py-3 text-left font-semibold text-gray-700">Received</th>
+                                <th class="px-4 py-3 text-right font-semibold text-gray-700">Action</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 bg-white">
@@ -52,10 +59,90 @@
                                     <td class="px-4 py-3 text-gray-700">{{ $record->user?->name ?? '-' }}</td>
                                     <td class="px-4 py-3 text-gray-700">{{ $record->physical_location ?? '-' }}</td>
                                     <td class="px-4 py-3 text-gray-700">{{ $record->received_at?->format('M d, Y h:i A') ?? '-' }}</td>
+                                    <td class="px-4 py-3 text-right">
+                                        @if (auth()->user()?->department_id === $record->department_id)
+                                            <details class="inline-block text-left">
+                                                <summary class="cursor-pointer rounded-md border border-gray-300 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-700 hover:bg-gray-50">
+                                                    Release Original
+                                                </summary>
+                                                <div class="mt-2 w-96 rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
+                                                    <form method="POST" action="{{ route('custody.originals.release', $record->document) }}" class="space-y-2">
+                                                        @csrf
+                                                        <div>
+                                                            <x-input-label :value="__('Route Original To')" />
+                                                            <select
+                                                                name="to_department_id"
+                                                                class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                                required
+                                                            >
+                                                                <option value="">Select Department</option>
+                                                                @foreach ($activeDepartments as $department)
+                                                                    @if ($department->id !== $record->department_id)
+                                                                        <option value="{{ $department->id }}">{{ $department->name }}</option>
+                                                                    @endif
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
+                                                        <div class="rounded-md border border-gray-200 bg-gray-50 p-2">
+                                                            <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-700">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    name="copy_kept"
+                                                                    value="1"
+                                                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                                                >
+                                                                Keep photocopy in this office
+                                                            </label>
+                                                        </div>
+                                                        <div>
+                                                            <x-input-label :value="__('Copy Storage Location (if kept)')" />
+                                                            <x-text-input
+                                                                name="copy_storage_location"
+                                                                type="text"
+                                                                class="mt-1 block w-full text-sm"
+                                                                placeholder="e.g. Records Cabinet A-1"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <x-input-label :value="__('Original Storage Location (Destination)')" />
+                                                            <x-text-input
+                                                                name="original_storage_location"
+                                                                type="text"
+                                                                class="mt-1 block w-full text-sm"
+                                                                placeholder="e.g. Budget Cabinet C-1"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <x-input-label :value="__('Copy Purpose (Optional)')" />
+                                                            <textarea
+                                                                name="copy_purpose"
+                                                                rows="2"
+                                                                class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                                placeholder="e.g. Office reference"
+                                                            ></textarea>
+                                                        </div>
+                                                        <div>
+                                                            <x-input-label :value="__('Remarks (Optional)')" />
+                                                            <textarea
+                                                                name="remarks"
+                                                                rows="2"
+                                                                class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                            ></textarea>
+                                                        </div>
+                                                        <x-primary-button class="w-full justify-center text-xs">
+                                                            Release Original
+                                                        </x-primary-button>
+                                                    </form>
+                                                </div>
+                                            </details>
+                                        @else
+                                            <span class="text-xs text-gray-400">No action</span>
+                                        @endif
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="px-4 py-6 text-center text-gray-500">No original custody records found.</td>
+                                    <td colspan="7" class="px-4 py-6 text-center text-gray-500">No original custody records found.</td>
                                 </tr>
                             @endforelse
                         </tbody>

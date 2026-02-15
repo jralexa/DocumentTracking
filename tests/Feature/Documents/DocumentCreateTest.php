@@ -4,11 +4,14 @@ use App\DocumentEventType;
 use App\DocumentWorkflowStatus;
 use App\Models\Department;
 use App\Models\Document;
+use App\Models\DocumentAttachment;
 use App\Models\DocumentCase;
 use App\Models\DocumentItem;
 use App\Models\User;
 use App\TransferStatus;
 use App\UserRole;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 test('document creation form is available for processing users', function () {
     $department = Department::factory()->create();
@@ -71,11 +74,16 @@ test('guest role can create document from frontend form', function () {
 });
 
 test('user can create a document from the frontend form', function () {
+    Storage::fake('public');
+
     $department = Department::factory()->create();
     $user = User::factory()->create([
         'role' => UserRole::Regular,
         'department_id' => $department->id,
     ]);
+
+    $attachmentOne = UploadedFile::fake()->create('appointment-paper.pdf', 120, 'application/pdf');
+    $attachmentTwo = UploadedFile::fake()->create('service-record.xlsx', 90, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
     $payload = [
         'case_title' => 'Salary Claim Batch',
@@ -92,6 +100,7 @@ test('user can create a document from the frontend form', function () {
         'initial_remarks' => 'Created by records clerk.',
         'is_returnable' => '1',
         'return_deadline' => now()->addDays(30)->toDateString(),
+        'attachments' => [$attachmentOne, $attachmentTwo],
     ];
 
     $response = $this->actingAs($user)->post(route('documents.store'), $payload);
@@ -118,6 +127,23 @@ test('user can create a document from the frontend form', function () {
     expect($documentItem)->not->toBeNull();
     expect($documentItem?->name)->toBe($payload['item_name']);
     expect($documentItem?->item_type)->toBe('main');
+
+    expect(DocumentAttachment::query()->where('document_id', $document?->id)->count())->toBe(2);
+
+    $storedAttachments = DocumentAttachment::query()
+        ->where('document_id', $document?->id)
+        ->get();
+
+    $storedAttachments->each(function (DocumentAttachment $attachment): void {
+        Storage::disk($attachment->disk)->assertExists($attachment->path);
+    });
+
+    expect(
+        DocumentItem::query()
+            ->where('document_id', $document?->id)
+            ->where('item_type', 'attachment')
+            ->count()
+    )->toBe(2);
 
     expect($document?->events()->where('event_type', DocumentEventType::DocumentCreated->value)->exists())->toBeTrue();
     expect($document?->remarks()->where('remark', $payload['initial_remarks'])->exists())->toBeTrue();

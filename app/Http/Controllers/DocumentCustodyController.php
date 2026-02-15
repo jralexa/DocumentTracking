@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\DocumentVersionType;
 use App\Exceptions\InvalidDocumentCustodyActionException;
 use App\Http\Requests\MarkReturnableDocumentRequest;
+use App\Http\Requests\ReleaseOriginalCustodyRequest;
 use App\Models\Department;
 use App\Models\Document;
 use App\Models\DocumentCopy;
@@ -62,6 +63,7 @@ class DocumentCustodyController extends Controller
         $search = trim((string) $request->query('q', ''));
 
         $records = DocumentCopy::query()
+            ->where('is_discarded', false)
             ->with(['document.documentCase', 'department', 'user', 'transfer.toDepartment'])
             ->when($this->hasFilter($departmentId), fn (Builder $query) => $query->where('department_id', (int) $departmentId))
             ->when($this->hasFilter($copyType), fn (Builder $query) => $query->where('copy_type', $copyType))
@@ -125,6 +127,44 @@ class DocumentCustodyController extends Controller
         }
 
         return back()->with('status', 'Returnable original has been marked as returned.');
+    }
+
+    /**
+     * Release original custody to another department.
+     */
+    public function releaseOriginal(
+        ReleaseOriginalCustodyRequest $request,
+        Document $document,
+        DocumentCustodyService $custodyService
+    ): RedirectResponse {
+        $user = $request->user();
+        abort_unless($user !== null, 403);
+
+        $toDepartment = Department::query()->findOrFail((int) $request->validated('to_department_id'));
+        $originalStorageLocation = $request->validated('original_storage_location');
+        $remarks = $request->validated('remarks');
+        $copyKept = (bool) ($request->validated('copy_kept') ?? false);
+        $copyStorageLocation = $request->validated('copy_storage_location');
+        $copyPurpose = $request->validated('copy_purpose');
+
+        try {
+            $custodyService->releaseOriginalToDepartment(
+                document: $document,
+                user: $user,
+                toDepartment: $toDepartment,
+                originalStorageLocation: $originalStorageLocation,
+                remarks: $remarks,
+                copyKept: $copyKept,
+                copyStorageLocation: $copyStorageLocation,
+                copyPurpose: $copyPurpose
+            );
+        } catch (InvalidDocumentCustodyActionException $exception) {
+            throw ValidationException::withMessages([
+                'release_original' => $exception->getMessage(),
+            ]);
+        }
+
+        return back()->with('status', 'Original released to destination department successfully.');
     }
 
     /**

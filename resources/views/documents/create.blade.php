@@ -18,6 +18,7 @@
                 <form
                     method="POST"
                     action="{{ route('documents.store') }}"
+                    enctype="multipart/form-data"
                     class="space-y-4 p-4 sm:p-5"
                     x-data="{
                         quickMode: @js(old('quick_mode', '1') === '1'),
@@ -244,6 +245,21 @@
                                 <x-input-label for="initial_remarks" :value="__('Initial Remarks (Optional)')" />
                                 <textarea id="initial_remarks" name="initial_remarks" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('initial_remarks') }}</textarea>
                                 <x-input-error :messages="$errors->get('initial_remarks')" class="mt-2" />
+                            </div>
+
+                            <div>
+                                <x-input-label for="attachments" :value="__('Attachments (Optional)')" />
+                                <input
+                                    id="attachments"
+                                    name="attachments[]"
+                                    type="file"
+                                    multiple
+                                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                                    class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                                <p class="mt-1 text-xs text-slate-500">Up to 10 files, max 10MB each. Allowed: PDF, image, Word, Excel.</p>
+                                <x-input-error :messages="$errors->get('attachments')" class="mt-2" />
+                                <x-input-error :messages="$errors->get('attachments.*')" class="mt-2" />
                             </div>
                         </div>
                     </details>

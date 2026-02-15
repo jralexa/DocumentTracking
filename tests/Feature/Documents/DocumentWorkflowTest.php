@@ -1,5 +1,6 @@
 <?php
 
+use App\DocumentEventType;
 use App\DocumentVersionType;
 use App\DocumentWorkflowStatus;
 use App\Models\Department;
@@ -104,6 +105,68 @@ test('cannot forward to same department', function () {
     ]);
 
     $response->assertSessionHasErrors('to_department_id');
+});
+
+test('marks queued document as finished and clears personal assignee', function () {
+    $department = Department::factory()->create();
+    $assignee = User::factory()->create(['department_id' => $department->id]);
+    $document = Document::factory()->create([
+        'current_department_id' => $department->id,
+        'current_user_id' => $assignee->id,
+        'status' => DocumentWorkflowStatus::OnQueue,
+        'completed_at' => null,
+    ]);
+
+    $response = $this->actingAs($assignee)->post(route('documents.complete', $document), [
+        'remarks' => 'Settled and no further routing needed.',
+    ]);
+
+    $response->assertRedirect();
+    $document->refresh();
+
+    expect($document->status)->toBe(DocumentWorkflowStatus::Finished);
+    expect($document->completed_at)->not->toBeNull();
+    expect($document->current_user_id)->toBeNull();
+    expect($document->current_department_id)->toBe($department->id);
+    expect(
+        $document->events()
+            ->where('event_type', DocumentEventType::WorkflowCompleted->value)
+            ->exists()
+    )->toBeTrue();
+});
+
+test('cannot finish document when actor is not current assignee', function () {
+    $department = Department::factory()->create();
+    $assignee = User::factory()->create(['department_id' => $department->id]);
+    $otherUser = User::factory()->create(['department_id' => $department->id]);
+    $document = Document::factory()->create([
+        'current_department_id' => $department->id,
+        'current_user_id' => $assignee->id,
+        'status' => DocumentWorkflowStatus::OnQueue,
+    ]);
+
+    $response = $this->actingAs($otherUser)->post(route('documents.complete', $document));
+
+    $response->assertForbidden();
+    $document->refresh();
+    expect($document->status)->toBe(DocumentWorkflowStatus::OnQueue);
+});
+
+test('cannot finish document that is not currently on queue', function () {
+    $department = Department::factory()->create();
+    $user = User::factory()->create(['department_id' => $department->id]);
+    $document = Document::factory()->create([
+        'current_department_id' => $department->id,
+        'current_user_id' => $user->id,
+        'status' => DocumentWorkflowStatus::Outgoing,
+    ]);
+
+    $response = $this->actingAs($user)->post(route('documents.complete', $document));
+
+    $response->assertRedirect();
+    $response->assertSessionHasErrors('workflow');
+    $document->refresh();
+    expect($document->status)->toBe(DocumentWorkflowStatus::Outgoing);
 });
 
 test('recalls pending outgoing before destination accepts', function () {
@@ -278,6 +341,39 @@ test('on queue excludes documents assigned to user but in different current depa
     $response->assertDontSee($mismatchedDocument->tracking_number);
 });
 
+test('outgoing queue excludes transfers from users previous department after reassignment', function () {
+    $oldDepartment = Department::factory()->create();
+    $newDepartment = Department::factory()->create();
+    $destinationDepartment = Department::factory()->create();
+
+    $user = User::factory()->create([
+        'department_id' => $oldDepartment->id,
+        'role' => UserRole::Regular,
+    ]);
+
+    $document = Document::factory()->create([
+        'current_department_id' => $destinationDepartment->id,
+        'current_user_id' => null,
+        'status' => DocumentWorkflowStatus::Outgoing,
+    ]);
+
+    DocumentTransfer::factory()->create([
+        'document_id' => $document->id,
+        'from_department_id' => $oldDepartment->id,
+        'to_department_id' => $destinationDepartment->id,
+        'forwarded_by_user_id' => $user->id,
+        'status' => TransferStatus::Pending,
+        'accepted_at' => null,
+    ]);
+
+    $user->update(['department_id' => $newDepartment->id]);
+
+    $response = $this->actingAs($user)->get(route('documents.queues.index'));
+
+    $response->assertSuccessful();
+    $response->assertDontSee($document->tracking_number);
+});
+
 test('regular user can process document workflow actions under ownership rules', function () {
     $fromDepartment = Department::factory()->create();
     $toDepartment = Department::factory()->create();
@@ -324,6 +420,83 @@ test('forward and recall preserve append only transfer history', function () {
 
     expect(DocumentTransfer::query()->where('document_id', $document->id)->count())->toBe(1);
     expect($transfer->fresh()->status)->toBe(TransferStatus::Recalled);
+});
+
+test('recall voids transfer linked copy inventory and restores source original custody', function () {
+    $sourceDepartment = Department::factory()->create();
+    $destinationDepartment = Department::factory()->create(['is_active' => true]);
+    $user = User::factory()->create(['department_id' => $sourceDepartment->id]);
+
+    $document = Document::factory()->create([
+        'current_department_id' => $sourceDepartment->id,
+        'current_user_id' => $user->id,
+        'status' => DocumentWorkflowStatus::OnQueue,
+        'original_current_department_id' => $sourceDepartment->id,
+        'original_custodian_user_id' => $user->id,
+    ]);
+
+    $this->actingAs($user)->post(route('documents.forward', $document), [
+        'to_department_id' => $destinationDepartment->id,
+        'forward_version_type' => DocumentVersionType::Original->value,
+        'copy_kept' => '1',
+        'copy_storage_location' => 'Records Shelf A1',
+        'copy_purpose' => 'Pre-acceptance reference',
+    ])->assertRedirect();
+
+    $transfer = DocumentTransfer::query()->where('document_id', $document->id)->latest('id')->firstOrFail();
+
+    $this->actingAs($user)->post(route('documents.recall', $transfer))->assertRedirect();
+
+    $document->refresh();
+    $copyRecord = DocumentCopy::query()->where('document_transfer_id', $transfer->id)->firstOrFail();
+
+    expect($copyRecord->is_discarded)->toBeTrue();
+    expect($copyRecord->discarded_at)->not->toBeNull();
+    expect($document->original_current_department_id)->toBe($sourceDepartment->id);
+    expect($document->original_custodian_user_id)->toBe($user->id);
+});
+
+test('recall of non original forward deactivates destination and retained copy custody artifacts', function () {
+    $sourceDepartment = Department::factory()->create();
+    $destinationDepartment = Department::factory()->create(['is_active' => true]);
+    $user = User::factory()->create(['department_id' => $sourceDepartment->id]);
+
+    $document = Document::factory()->create([
+        'current_department_id' => $sourceDepartment->id,
+        'current_user_id' => $user->id,
+        'status' => DocumentWorkflowStatus::OnQueue,
+    ]);
+
+    $this->actingAs($user)->post(route('documents.forward', $document), [
+        'to_department_id' => $destinationDepartment->id,
+        'forward_version_type' => DocumentVersionType::CertifiedCopy->value,
+        'copy_kept' => '1',
+        'copy_storage_location' => 'Records Cabinet A-1',
+        'copy_purpose' => 'Working reference',
+    ])->assertRedirect();
+
+    $transfer = DocumentTransfer::query()->where('document_id', $document->id)->latest('id')->firstOrFail();
+
+    $this->actingAs($user)->post(route('documents.recall', $transfer))->assertRedirect();
+
+    $destinationCustody = DocumentCustody::query()
+        ->where('document_id', $document->id)
+        ->where('department_id', $destinationDepartment->id)
+        ->where('version_type', DocumentVersionType::CertifiedCopy->value)
+        ->latest('id')
+        ->firstOrFail();
+
+    $sourcePhotocopyCustody = DocumentCustody::query()
+        ->where('document_id', $document->id)
+        ->where('department_id', $sourceDepartment->id)
+        ->where('version_type', DocumentVersionType::Photocopy->value)
+        ->latest('id')
+        ->firstOrFail();
+
+    expect($destinationCustody->is_current)->toBeFalse();
+    expect($destinationCustody->status)->toBe('recalled');
+    expect($sourcePhotocopyCustody->is_current)->toBeFalse();
+    expect($sourcePhotocopyCustody->status)->toBe('recalled');
 });
 
 test('document status and assignee fields stay synchronized after transitions', function () {

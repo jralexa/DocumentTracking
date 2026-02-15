@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\DocumentVersionType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class SplitDocumentRequest extends FormRequest
 {
@@ -27,7 +28,9 @@ class SplitDocumentRequest extends FormRequest
         $currentDepartmentId = $document?->current_department_id;
 
         return [
+            'confirm_routing_reviewed' => ['required', 'accepted'],
             'children' => ['required', 'array', 'min:1', 'max:10'],
+            'children.*.routing_mode' => ['nullable', Rule::in(['branch', 'child'])],
             'children.*.subject' => ['required', 'string', 'max:255'],
             'children.*.document_type' => ['required', Rule::in($this->documentTypes())],
             'children.*.same_owner_as_parent' => ['nullable', 'boolean'],
@@ -53,6 +56,43 @@ class SplitDocumentRequest extends FormRequest
     }
 
     /**
+     * Prepare payload defaults and normalize branch behavior.
+     */
+    protected function prepareForValidation(): void
+    {
+        $document = $this->route('document');
+        $children = $this->input('children', []);
+
+        if (! is_array($children)) {
+            return;
+        }
+
+        $normalizedChildren = [];
+
+        foreach ($children as $child) {
+            if (! is_array($child)) {
+                continue;
+            }
+
+            $routingMode = (string) ($child['routing_mode'] ?? 'branch');
+            $normalizedChild = $child;
+            $normalizedChild['routing_mode'] = $routingMode;
+
+            if ($routingMode === 'branch' && $document !== null) {
+                $normalizedChild['subject'] = $document->subject;
+                $normalizedChild['document_type'] = $document->document_type;
+                $normalizedChild['same_owner_as_parent'] = '1';
+                $normalizedChild['owner_type'] = $document->owner_type;
+                $normalizedChild['owner_name'] = $document->owner_name;
+            }
+
+            $normalizedChildren[] = $normalizedChild;
+        }
+
+        $this->merge(['children' => $normalizedChildren]);
+    }
+
+    /**
      * Get validation error messages.
      *
      * @return array<string, string>
@@ -60,12 +100,45 @@ class SplitDocumentRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'confirm_routing_reviewed.required' => 'Please confirm you reviewed the child routing details.',
+            'confirm_routing_reviewed.accepted' => 'Please confirm you reviewed the child routing details.',
             'children.*.to_department_ids.required' => 'Select at least one destination department.',
             'children.*.to_department_ids.min' => 'Select at least one destination department.',
             'children.*.copy_storage_location.required_if' => 'Storage location is required when keeping a copy.',
             'children.*.owner_type.required_unless' => 'Owner type is required when not using parent owner.',
             'children.*.owner_name.required_unless' => 'Owner name is required when not using parent owner.',
         ];
+    }
+
+    /**
+     * Configure the validator instance.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $children = $this->input('children', []);
+
+            if (! is_array($children)) {
+                return;
+            }
+
+            foreach ($children as $index => $child) {
+                if (! is_array($child)) {
+                    continue;
+                }
+
+                $forwardVersionTypeValue = (string) ($child['forward_version_type'] ?? DocumentVersionType::Original->value);
+                $isOriginalForward = $forwardVersionTypeValue === DocumentVersionType::Original->value;
+                $toDepartmentIds = $child['to_department_ids'] ?? [];
+
+                if ($isOriginalForward && is_array($toDepartmentIds) && count($toDepartmentIds) > 1) {
+                    $validator->errors()->add(
+                        "children.$index.to_department_ids",
+                        'Original version can only be routed to one destination. Use photocopy/certified copy for multi-destination routing.'
+                    );
+                }
+            }
+        });
     }
 
     /**

@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\DocumentAuditService;
 use App\TransferStatus;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -61,6 +62,7 @@ class DocumentController extends Controller
         $user = $this->resolveAuthenticatedUser($request);
 
         $validated = $request->validated();
+        $uploadedFiles = $request->file('attachments', []);
         $ownerPayload = $this->resolveOwnerPayload($validated);
         $intakeDepartmentId = $this->resolveIntakeDepartmentId($user->department_id);
 
@@ -68,6 +70,7 @@ class DocumentController extends Controller
         $intakeDepartmentName = $this->resolveIntakeDepartmentName($intakeDepartmentId);
         $trackingNumber = $this->createDocumentWithRelatedRecords(
             validated: $validated,
+            uploadedFiles: $uploadedFiles,
             ownerPayload: $ownerPayload,
             user: $user,
             intakeDepartmentId: $intakeDepartmentId
@@ -185,6 +188,7 @@ class DocumentController extends Controller
      * Create document case, document, and initial audit trail records.
      *
      * @param  array<string, mixed>  $validated
+     * @param  array<int, UploadedFile>  $uploadedFiles
      * @param  array{
      *   owner_district_id:int|null,
      *   owner_school_id:int|null,
@@ -194,9 +198,14 @@ class DocumentController extends Controller
      *   owner_school_name:string|null
      * }  $ownerPayload
      */
-    protected function createDocumentWithRelatedRecords(array $validated, array $ownerPayload, User $user, int $intakeDepartmentId): string
-    {
-        return DB::transaction(function () use ($validated, $ownerPayload, $user, $intakeDepartmentId): string {
+    protected function createDocumentWithRelatedRecords(
+        array $validated,
+        array $uploadedFiles,
+        array $ownerPayload,
+        User $user,
+        int $intakeDepartmentId
+    ): string {
+        return DB::transaction(function () use ($validated, $uploadedFiles, $ownerPayload, $user, $intakeDepartmentId): string {
             $now = now();
             $priority = $validated['priority'] ?? 'normal';
             $canProcessDocuments = $user->canProcessDocuments();
@@ -242,6 +251,12 @@ class DocumentController extends Controller
                 'sort_order' => 0,
             ]);
 
+            $this->storeDocumentAttachments(
+                document: $document,
+                uploadedFiles: $uploadedFiles,
+                user: $user
+            );
+
             $this->auditService->recordEvent(
                 document: $document,
                 eventType: DocumentEventType::DocumentCreated,
@@ -285,6 +300,40 @@ class DocumentController extends Controller
 
             return $trackingNumber;
         });
+    }
+
+    /**
+     * Persist uploaded document attachments and mirror them as attachment items.
+     *
+     * @param  array<int, UploadedFile>  $uploadedFiles
+     */
+    protected function storeDocumentAttachments(Document $document, array $uploadedFiles, User $user): void
+    {
+        foreach ($uploadedFiles as $uploadedFile) {
+            $path = $uploadedFile->store('document-attachments/'.$document->id, 'public');
+
+            $document->attachments()->create([
+                'uploaded_by_user_id' => $user->id,
+                'disk' => 'public',
+                'path' => $path,
+                'original_name' => $uploadedFile->getClientOriginalName(),
+                'mime_type' => $uploadedFile->getClientMimeType(),
+                'size_bytes' => (int) $uploadedFile->getSize(),
+            ]);
+
+            $document->items()->create([
+                'name' => $uploadedFile->getClientOriginalName(),
+                'item_type' => 'attachment',
+                'status' => 'active',
+                'quantity' => 1,
+                'metadata' => [
+                    'disk' => 'public',
+                    'path' => $path,
+                    'mime_type' => $uploadedFile->getClientMimeType(),
+                    'size_bytes' => (int) $uploadedFile->getSize(),
+                ],
+            ]);
+        }
     }
 
     /**

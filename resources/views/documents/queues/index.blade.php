@@ -171,6 +171,28 @@
                                                     </form>
                                                 </div>
                                                 </details>
+                                                <details class="inline-block text-left">
+                                                    <summary class="cursor-pointer rounded-md border border-red-300 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-red-700 hover:bg-red-50">
+                                                        Finish
+                                                    </summary>
+                                                    <div class="mt-2 w-80 rounded-lg border border-red-200 bg-white p-3 shadow-lg">
+                                                        <form method="POST" action="{{ route('documents.complete', $document) }}" class="space-y-2">
+                                                            @csrf
+                                                            <div>
+                                                                <x-input-label :value="__('Completion Remarks (Optional)')" />
+                                                                <textarea
+                                                                    name="remarks"
+                                                                    rows="3"
+                                                                    class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                                    placeholder="e.g. Settled and approved, no further routing needed."
+                                                                ></textarea>
+                                                            </div>
+                                                            <x-danger-button class="w-full justify-center text-xs">
+                                                                Mark as Finished
+                                                            </x-danger-button>
+                                                        </form>
+                                                    </div>
+                                                </details>
                                             </div>
                                         </td>
                                     </tr>

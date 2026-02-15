@@ -16,8 +16,18 @@ test('regular user cannot access advanced reports', function () {
     $regularUser = User::factory()->create(['role' => UserRole::Regular]);
 
     $this->actingAs($regularUser)->get(route('reports.aging-overdue'))->assertForbidden();
+    $this->actingAs($regularUser)->get(route('reports.sla-compliance'))->assertForbidden();
     $this->actingAs($regularUser)->get(route('reports.performance'))->assertForbidden();
     $this->actingAs($regularUser)->get(route('reports.custody'))->assertForbidden();
+    $this->actingAs($regularUser)->get(route('reports.index'))->assertForbidden();
+});
+
+test('manager can access reports workspace entry route', function () {
+    $manager = User::factory()->create(['role' => UserRole::Manager]);
+
+    $response = $this->actingAs($manager)->get(route('reports.index'));
+
+    $response->assertRedirect(route('reports.departments.monthly'));
 });
 
 test('manager can view aging overdue report', function () {
@@ -114,4 +124,77 @@ test('manager can view custody report', function () {
     $response->assertSee('Custody Report');
     $response->assertSee('Original Diploma Return');
     $response->assertSee('Vault A');
+});
+
+test('manager can view sla compliance report', function () {
+    Carbon::setTestNow(Carbon::create(2026, 3, 10, 8, 0, 0));
+
+    $department = Department::factory()->create(['name' => 'Accounting']);
+    $manager = User::factory()->create(['role' => UserRole::Manager, 'department_id' => $department->id]);
+
+    Document::factory()->create([
+        'current_department_id' => $department->id,
+        'status' => DocumentWorkflowStatus::Finished,
+        'subject' => 'Closed Within SLA',
+        'document_type' => 'request',
+        'priority' => 'normal',
+        'due_at' => Carbon::create(2026, 2, 8, 12, 0, 0),
+        'completed_at' => Carbon::create(2026, 2, 8, 10, 0, 0),
+    ]);
+
+    $breached = Document::factory()->create([
+        'current_department_id' => $department->id,
+        'status' => DocumentWorkflowStatus::Finished,
+        'subject' => 'Closed Beyond SLA',
+        'document_type' => 'for_processing',
+        'priority' => 'urgent',
+        'due_at' => Carbon::create(2026, 2, 5, 12, 0, 0),
+        'completed_at' => Carbon::create(2026, 2, 7, 10, 0, 0),
+    ]);
+
+    Document::factory()->create([
+        'current_department_id' => $department->id,
+        'status' => DocumentWorkflowStatus::OnQueue,
+        'subject' => 'Still Open and Overdue',
+        'due_at' => Carbon::create(2026, 2, 1, 12, 0, 0),
+        'completed_at' => null,
+    ]);
+
+    $response = $this->actingAs($manager)->get(route('reports.sla-compliance', [
+        'department_id' => $department->id,
+        'month' => '2026-02',
+    ]));
+
+    Carbon::setTestNow();
+
+    $response->assertSuccessful();
+    $response->assertSee('SLA Compliance Report');
+    $response->assertSee($breached->subject);
+    $response->assertSee('Open past due');
+    $response->assertSee('Compliance by Document Type');
+    $response->assertSee('for_processing');
+    $response->assertSee('Compliance by Priority');
+    $response->assertSee('Urgent');
+});
+
+test('manager cannot view advanced reports for another department', function () {
+    $departmentA = Department::factory()->create(['name' => 'Accounting']);
+    $departmentB = Department::factory()->create(['name' => 'Budget']);
+    $manager = User::factory()->create(['role' => UserRole::Manager, 'department_id' => $departmentA->id]);
+
+    $this->actingAs($manager)
+        ->get(route('reports.aging-overdue', ['department_id' => $departmentB->id]))
+        ->assertForbidden();
+
+    $this->actingAs($manager)
+        ->get(route('reports.sla-compliance', ['department_id' => $departmentB->id, 'month' => '2026-02']))
+        ->assertForbidden();
+
+    $this->actingAs($manager)
+        ->get(route('reports.performance', ['department_id' => $departmentB->id, 'month' => '2026-02']))
+        ->assertForbidden();
+
+    $this->actingAs($manager)
+        ->get(route('reports.custody', ['department_id' => $departmentB->id]))
+        ->assertForbidden();
 });

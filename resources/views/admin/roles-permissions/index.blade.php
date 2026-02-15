@@ -6,9 +6,11 @@
     </x-slot>
 
     <div class="py-6">
-        <div class="mx-auto max-w-6xl sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-7xl space-y-4 sm:px-6 lg:px-8">
+            @include('admin.users.partials.tabs')
+
             <section class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-                <p class="mb-4 text-sm text-gray-600">Current permission matrix used by route and gate authorization.</p>
+                <p class="mb-4 text-sm text-gray-600">Simple role matrix used by route and gate authorization.</p>
 
                 <div class="overflow-x-auto rounded-md border border-gray-200">
                     <table class="min-w-full divide-y divide-gray-200 text-sm">
@@ -33,9 +35,9 @@
                                         @endphp
                                         <td class="px-4 py-3 text-center">
                                             <span @class([
-                                                'inline-flex rounded-full px-2 py-1 text-xs font-semibold',
-                                                'bg-green-100 text-green-700' => $allowed,
-                                                'bg-gray-100 text-gray-600' => ! $allowed,
+                                                'inline-flex min-w-20 items-center justify-center rounded-full px-2 py-1 text-xs font-semibold',
+                                                'bg-green-100 text-green-700 ring-1 ring-inset ring-green-200' => $allowed,
+                                                'bg-red-100 text-red-700 ring-1 ring-inset ring-red-200' => ! $allowed,
                                             ])>
                                                 {{ $allowed ? 'Allowed' : 'Blocked' }}
                                             </span>

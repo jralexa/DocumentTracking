@@ -10,6 +10,7 @@ use App\Exceptions\UnauthorizedWorkflowActionException;
 use App\Models\Department;
 use App\Models\Document;
 use App\Models\DocumentCopy;
+use App\Models\DocumentCustody;
 use App\Models\DocumentTransfer;
 use App\Models\User;
 use App\TransferStatus;
@@ -207,11 +208,26 @@ class DocumentWorkflowService
                 'recalled_by_user_id' => $user->id,
             ])->save();
 
+            $this->voidRecalledTransferCopies($transfer);
+            $this->rollbackRecalledTransferCustodies($transfer);
+
             $document->forceFill([
                 'current_department_id' => $transfer->from_department_id,
                 'current_user_id' => $user->id,
                 'status' => DocumentWorkflowStatus::OnQueue,
             ])->save();
+
+            if ($transfer->forward_version_type === DocumentVersionType::Original) {
+                $fromDepartment = Department::query()->find($transfer->from_department_id);
+
+                $this->custodyService->assignOriginalCustody(
+                    document: $document,
+                    department: $fromDepartment,
+                    custodian: $user,
+                    purpose: 'Original custody restored after transfer recall.',
+                    notes: 'Transfer was recalled before destination acceptance.'
+                );
+            }
 
             $this->auditService->recordEvent(
                 document: $document,
@@ -224,6 +240,49 @@ class DocumentWorkflowService
 
         });
 
+    }
+
+    /**
+     * Mark a queued document as completed and remove personal assignment.
+     *
+     * @throws InvalidWorkflowTransitionException
+     * @throws UnauthorizedWorkflowActionException
+     */
+    public function complete(Document $document, User $user, ?string $remarks = null): void
+    {
+        $this->assertUserHasDepartment($user);
+        $this->assertDocumentCompletable($document, $user);
+
+        DB::transaction(function () use ($document, $user, $remarks): void {
+            $timestamp = now();
+
+            $document->forceFill([
+                'status' => DocumentWorkflowStatus::Finished,
+                'completed_at' => $timestamp,
+                'current_user_id' => null,
+            ])->save();
+
+            $this->auditService->recordEvent(
+                document: $document,
+                eventType: DocumentEventType::WorkflowCompleted,
+                actedBy: $user,
+                message: 'Document marked as finished by current assignee.',
+                context: 'workflow',
+                payload: [
+                    'completed_at' => $timestamp->toIso8601String(),
+                    'completed_department_id' => $document->current_department_id,
+                ]
+            );
+
+            if ($remarks !== null && $remarks !== '') {
+                $this->auditService->addRemark(
+                    document: $document,
+                    remark: $remarks,
+                    user: $user,
+                    context: 'workflow'
+                );
+            }
+        });
     }
 
     /**
@@ -254,6 +313,69 @@ class DocumentWorkflowService
             'recorded_at' => now(),
             'is_discarded' => false,
         ]);
+    }
+
+    /**
+     * Mark retained copy records from a recalled transfer as discarded.
+     */
+    protected function voidRecalledTransferCopies(DocumentTransfer $transfer): void
+    {
+        $transfer->copies()
+            ->where('is_discarded', false)
+            ->update([
+                'is_discarded' => true,
+                'discarded_at' => now(),
+            ]);
+    }
+
+    /**
+     * Roll back current custody artifacts produced by a recalled transfer.
+     */
+    protected function rollbackRecalledTransferCustodies(DocumentTransfer $transfer): void
+    {
+        $timestamp = now();
+        $forwardVersionType = $transfer->forward_version_type ?? DocumentVersionType::Original;
+
+        $destinationCustody = DocumentCustody::query()
+            ->where('document_id', $transfer->document_id)
+            ->where('department_id', $transfer->to_department_id)
+            ->where('version_type', $forwardVersionType->value)
+            ->where('is_current', true)
+            ->latest('id')
+            ->first();
+
+        if ($destinationCustody !== null) {
+            $destinationCustody->forceFill([
+                'is_current' => false,
+                'status' => 'recalled',
+                'released_at' => $timestamp,
+            ])->save();
+        }
+
+        if ($transfer->copy_kept) {
+            $sourceCopyCustody = DocumentCustody::query()
+                ->where('document_id', $transfer->document_id)
+                ->where('department_id', $transfer->from_department_id)
+                ->where('version_type', DocumentVersionType::Photocopy->value)
+                ->where('is_current', true)
+                ->when($transfer->copy_storage_location !== null && $transfer->copy_storage_location !== '', function ($query) use ($transfer): void {
+                    $query->where(function ($locationQuery) use ($transfer): void {
+                        $locationQuery
+                            ->where('physical_location', $transfer->copy_storage_location)
+                            ->orWhere('storage_reference', $transfer->copy_storage_location);
+                    });
+                })
+                ->latest('id')
+                ->first();
+
+            if ($sourceCopyCustody !== null) {
+                $sourceCopyCustody->forceFill([
+                    'is_current' => false,
+                    'status' => 'recalled',
+                    'released_at' => $timestamp,
+                ])->save();
+            }
+        }
     }
 
     /**
@@ -354,6 +476,31 @@ class DocumentWorkflowService
     {
         if ($copyKept && ($copyStorageLocation === null || trim($copyStorageLocation) === '')) {
             $this->throwInvalidWorkflowTransition('Storage location is required when keeping a copy.');
+        }
+    }
+
+    /**
+     * Assert completion preconditions and authorization.
+     *
+     * @throws InvalidWorkflowTransitionException
+     * @throws UnauthorizedWorkflowActionException
+     */
+    protected function assertDocumentCompletable(Document $document, User $user): void
+    {
+        if ($document->status !== DocumentWorkflowStatus::OnQueue) {
+            $this->throwInvalidWorkflowTransition('Only queued documents can be marked as finished.');
+        }
+
+        if ($document->current_user_id !== $user->id) {
+            $this->throwUnauthorizedWorkflowAction('Only the current assignee can mark this document as finished.');
+        }
+
+        if ($document->current_department_id === null) {
+            $this->throwInvalidWorkflowTransition('Document must have a current department before finishing.');
+        }
+
+        if ($user->department_id !== $document->current_department_id) {
+            $this->throwUnauthorizedWorkflowAction('You can only finish documents assigned to your current department.');
         }
     }
 

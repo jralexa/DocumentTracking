@@ -29,15 +29,16 @@
                     class="space-y-4 p-4"
                     x-data="{
                         children: [
-                            { subject: '', document_type: 'submission', same_owner_as_parent: true, owner_type: @js($parentDocument->owner_type), owner_name: @js($parentDocument->owner_name), forward_version_type: 'original', to_department_ids: [], copy_kept: false, copy_storage_location: '', copy_purpose: '', original_storage_location: '', is_returnable: false, return_deadline: '', remarks: '' }
+                            { routing_mode: 'branch', subject: @js($parentDocument->subject), document_type: @js($parentDocument->document_type), same_owner_as_parent: true, owner_type: @js($parentDocument->owner_type), owner_name: @js($parentDocument->owner_name), forward_version_type: 'original', to_department_ids: [], copy_kept: false, copy_storage_location: '', copy_purpose: '', original_storage_location: '', is_returnable: false, return_deadline: '', remarks: '' }
                         ],
                         addChild() {
                             if (this.children.length >= 10) {
                                 return;
                             }
                             this.children.push({
-                                subject: '',
-                                document_type: 'submission',
+                                routing_mode: 'branch',
+                                subject: @js($parentDocument->subject),
+                                document_type: @js($parentDocument->document_type),
                                 same_owner_as_parent: true,
                                 owner_type: @js($parentDocument->owner_type),
                                 owner_name: @js($parentDocument->owner_name),
@@ -90,28 +91,60 @@
                             </div>
 
                             <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+                                <div class="rounded-md border border-gray-200 bg-gray-50 p-2 md:col-span-3">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-600">Split Mode</p>
+                                    <div class="mt-2 flex flex-wrap gap-4 text-sm text-gray-700">
+                                        <label class="inline-flex items-center gap-2">
+                                            <input
+                                                type="radio"
+                                                :name="'children[' + index + '][routing_mode]'"
+                                                value="branch"
+                                                x-model="child.routing_mode"
+                                                @change="if (child.routing_mode === 'branch') { child.subject = @js($parentDocument->subject); child.document_type = @js($parentDocument->document_type); child.same_owner_as_parent = true; child.owner_type = @js($parentDocument->owner_type); child.owner_name = @js($parentDocument->owner_name); }"
+                                                class="border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                            >
+                                            Branch same document
+                                        </label>
+                                        <label class="inline-flex items-center gap-2">
+                                            <input
+                                                type="radio"
+                                                :name="'children[' + index + '][routing_mode]'"
+                                                value="child"
+                                                x-model="child.routing_mode"
+                                                class="border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                            >
+                                            Create child document
+                                        </label>
+                                    </div>
+                                    <p class="mt-1 text-xs text-gray-500">Use branch mode when this is the same document routed to another office. Use child mode only when creating a separate related document record.</p>
+                                </div>
+
                                 <div class="md:col-span-3">
                                     <label class="block text-sm font-medium text-gray-700">Subject</label>
                                     <input
                                         type="text"
                                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        :class="{ 'bg-gray-100 text-gray-600': child.routing_mode === 'branch' }"
                                         x-model="child.subject"
                                         x-bind:name="'children[' + index + '][subject]'"
+                                        :readonly="child.routing_mode === 'branch'"
                                         required
                                     >
+                                    <p class="mt-1 text-xs text-gray-500" x-show="child.routing_mode === 'branch'">Subject follows parent document in branch mode.</p>
                                 </div>
 
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Document Type</label>
-                                    <select x-bind:name="'children[' + index + '][document_type]'" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" x-model="child.document_type" required>
+                                    <select x-bind:name="'children[' + index + '][document_type]'" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" x-model="child.document_type" :disabled="child.routing_mode === 'branch'" required>
                                         <option value="communication">Communication</option>
                                         <option value="submission">Submission</option>
                                         <option value="request">Request</option>
                                         <option value="for_processing">For Processing</option>
                                     </select>
+                                    <p class="mt-1 text-xs text-gray-500" x-show="child.routing_mode === 'branch'">Document type follows parent in branch mode.</p>
                                 </div>
 
-                                <div>
+                                <div x-show="child.routing_mode === 'child'">
                                     <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-700">
                                         <input
                                             :name="'children[' + index + '][same_owner_as_parent]'"
@@ -124,7 +157,7 @@
                                     </label>
                                 </div>
 
-                                <div>
+                                <div x-show="child.routing_mode === 'child'">
                                     <label class="block text-sm font-medium text-gray-700">Owner Type</label>
                                     <select
                                         x-bind:name="'children[' + index + '][owner_type]'"
@@ -140,7 +173,7 @@
                                     </select>
                                 </div>
 
-                                <div>
+                                <div x-show="child.routing_mode === 'child'">
                                     <label class="block text-sm font-medium text-gray-700">Owner Name</label>
                                     <input
                                         type="text"
@@ -152,12 +185,17 @@
                                     >
                                 </div>
 
+                                <div class="rounded-md border border-gray-200 bg-gray-50 p-2 md:col-span-2" x-show="child.routing_mode === 'branch'">
+                                    <p class="text-xs text-gray-600">Owner follows parent document in branch mode.</p>
+                                </div>
+
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Forward Version</label>
                                     <select
                                         :name="'children[' + index + '][forward_version_type]'"
                                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                         x-model="child.forward_version_type"
+                                        @change="if (child.forward_version_type === 'original' && child.to_department_ids.length > 1) { child.to_department_ids = [child.to_department_ids[0]]; } if (child.forward_version_type !== 'original') { child.copy_kept = false; child.copy_storage_location = ''; child.copy_purpose = ''; }"
                                     >
                                         <option value="original">Original</option>
                                         <option value="certified_copy">Certified Copy</option>
@@ -168,6 +206,9 @@
 
                                 <div class="md:col-span-3">
                                     <label class="block text-sm font-medium text-gray-700">Route To Departments</label>
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        Original can be routed to one department only. Use certified copy / photocopy / scan for multi-department routing.
+                                    </p>
                                     <div class="mt-1 grid grid-cols-1 gap-2 rounded-md border border-gray-200 bg-gray-50 p-2 md:grid-cols-2">
                                         @foreach ($activeDepartments as $department)
                                             <label class="inline-flex items-center gap-2 text-sm text-gray-700">
@@ -177,6 +218,7 @@
                                                     :name="'children[' + index + '][to_department_ids][]'"
                                                     value="{{ $department->id }}"
                                                     x-model="child.to_department_ids"
+                                                    :disabled="child.forward_version_type === 'original' && !child.to_department_ids.includes('{{ $department->id }}') && child.to_department_ids.length >= 1"
                                                 >
                                                 {{ $department->name }}
                                             </label>
@@ -189,7 +231,7 @@
                                     <textarea x-bind:name="'children[' + index + '][remarks]'" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" x-model="child.remarks"></textarea>
                                 </div>
 
-                                <div class="rounded-md border border-gray-200 bg-gray-50 p-2 md:col-span-3">
+                                <div class="rounded-md border border-gray-200 bg-gray-50 p-2 md:col-span-3" x-show="child.forward_version_type === 'original'">
                                     <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-700">
                                         <input
                                             :name="'children[' + index + '][copy_kept]'"
@@ -254,6 +296,19 @@
                             </div>
                         </article>
                     </template>
+
+                    <div class="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                        <label class="inline-flex items-start gap-2 text-sm text-amber-900">
+                            <input
+                                type="checkbox"
+                                name="confirm_routing_reviewed"
+                                value="1"
+                                class="mt-0.5 rounded border-amber-300 text-indigo-600 focus:ring-indigo-500"
+                                required
+                            >
+                            I reviewed each child subject and destination department before submitting.
+                        </label>
+                    </div>
 
                     <div class="flex items-center justify-end gap-2 border-t border-gray-200 pt-4">
                         <a

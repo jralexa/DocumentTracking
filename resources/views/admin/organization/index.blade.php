@@ -26,7 +26,7 @@
     @endphp
 
     <div class="py-6">
-        <div class="mx-auto max-w-6xl sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
             <section class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                 <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <div>

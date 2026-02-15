@@ -174,6 +174,14 @@ class Document extends Model
     }
 
     /**
+     * Get all file attachments for this document.
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(DocumentAttachment::class);
+    }
+
+    /**
      * Get all audit events for this document.
      */
     public function events(): HasMany
@@ -278,6 +286,8 @@ class Document extends Model
                     key: 'forwarded_by_user_id',
                     value: $user->id
                 );
+
+                $transferQuery->where('from_department_id', $user->department_id);
             })
             ->where('status', DocumentWorkflowStatus::Outgoing->value);
     }

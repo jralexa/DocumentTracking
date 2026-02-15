@@ -5,12 +5,16 @@
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            @include('reports.partials.tabs')
+
             <section class="bg-white shadow-sm rounded-lg border border-gray-200 p-4">
                 <form method="GET" action="{{ route('reports.aging-overdue') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <div>
                         <x-input-label for="department_id" :value="__('Department')" />
                         <select id="department_id" name="department_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="">All Departments</option>
+                            @if ($canViewAllDepartments)
+                                <option value="">All Departments</option>
+                            @endif
                             @foreach ($activeDepartments as $department)
                                 <option value="{{ $department->id }}" @selected((string) $filters['department_id'] === (string) $department->id)>
                                     {{ $department->name }}

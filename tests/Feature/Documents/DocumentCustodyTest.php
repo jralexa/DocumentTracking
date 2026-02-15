@@ -1,6 +1,7 @@
 <?php
 
 use App\DocumentVersionType;
+use App\DocumentWorkflowStatus;
 use App\Models\Department;
 use App\Models\Document;
 use App\Models\DocumentCustody;
@@ -105,6 +106,10 @@ test('marking original returned clears active original tracker and stamps return
     expect($document->original_current_department_id)->toBeNull();
     expect($document->original_custodian_user_id)->toBeNull();
     expect($document->original_physical_location)->toBeNull();
+    expect($document->status)->toBe(DocumentWorkflowStatus::Finished);
+    expect($document->completed_at?->equalTo($returnedAt))->toBeTrue();
+    expect($document->current_department_id)->toBeNull();
+    expect($document->current_user_id)->toBeNull();
     expect($originalCustody->is_current)->toBeFalse();
     expect($originalCustody->status)->toBe('returned');
 });

@@ -4,9 +4,11 @@ namespace App\Services;
 
 use App\DocumentEventType;
 use App\DocumentVersionType;
+use App\DocumentWorkflowStatus;
 use App\Exceptions\InvalidDocumentCustodyActionException;
 use App\Models\Department;
 use App\Models\Document;
+use App\Models\DocumentCopy;
 use App\Models\DocumentCustody;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -170,6 +172,10 @@ class DocumentCustodyService
                 'original_current_department_id' => null,
                 'original_custodian_user_id' => null,
                 'original_physical_location' => null,
+                'status' => DocumentWorkflowStatus::Finished,
+                'completed_at' => $timestamp,
+                'current_department_id' => null,
+                'current_user_id' => null,
             ])->save();
 
             $this->auditService->recordEvent(
@@ -183,6 +189,135 @@ class DocumentCustodyService
                 ]
             );
         });
+    }
+
+    /**
+     * Release the original custody to another department while optionally retaining a photocopy.
+     */
+    public function releaseOriginalToDepartment(
+        Document $document,
+        User $user,
+        Department $toDepartment,
+        ?string $originalStorageLocation = null,
+        ?string $remarks = null,
+        bool $copyKept = false,
+        ?string $copyStorageLocation = null,
+        ?string $copyPurpose = null
+    ): void {
+        if ($user->department_id === null) {
+            $this->throwInvalidCustodyAction('You are not assigned to a department.');
+        }
+
+        if ($document->original_current_department_id === null) {
+            $this->throwInvalidCustodyAction('No active original custody is currently recorded.');
+        }
+
+        if ((int) $document->original_current_department_id !== (int) $user->department_id) {
+            $this->throwInvalidCustodyAction('Only the current original holder department can release this original.');
+        }
+
+        if ((int) $toDepartment->id === (int) $document->original_current_department_id) {
+            $this->throwInvalidCustodyAction('Destination department must be different from current original holder department.');
+        }
+
+        if ($copyKept && ($copyStorageLocation === null || trim($copyStorageLocation) === '')) {
+            $this->throwInvalidCustodyAction('Storage location is required when keeping a copy.');
+        }
+
+        $fromDepartment = Department::query()->find($document->original_current_department_id);
+
+        DB::transaction(function () use (
+            $document,
+            $user,
+            $toDepartment,
+            $remarks,
+            $copyKept,
+            $copyStorageLocation,
+            $copyPurpose,
+            $fromDepartment,
+            $originalStorageLocation
+        ): void {
+            $resolvedOriginalStorageLocation = $originalStorageLocation;
+
+            if ($resolvedOriginalStorageLocation === null || trim($resolvedOriginalStorageLocation) === '') {
+                $resolvedOriginalStorageLocation = $document->original_physical_location;
+            }
+
+            $custody = $this->assignOriginalCustody(
+                document: $document,
+                department: $toDepartment,
+                custodian: null,
+                physicalLocation: $resolvedOriginalStorageLocation,
+                storageReference: $resolvedOriginalStorageLocation,
+                purpose: 'Released original to another department.',
+                notes: $remarks
+            );
+
+            if ($copyKept) {
+                $this->recordKeptCopy(
+                    document: $document,
+                    user: $user,
+                    storageLocation: $copyStorageLocation,
+                    purpose: $copyPurpose
+                );
+
+                $this->recordDerivativeCustody(
+                    document: $document,
+                    versionType: DocumentVersionType::Photocopy,
+                    department: $fromDepartment,
+                    custodian: $user,
+                    physicalLocation: $copyStorageLocation,
+                    storageReference: $copyStorageLocation,
+                    purpose: $copyPurpose ?? 'Retained departmental photocopy while releasing original.',
+                    notes: 'Copy retained during original release.'
+                );
+            }
+
+            $this->auditService->recordEvent(
+                document: $document,
+                eventType: DocumentEventType::CustodyAssigned,
+                actedBy: $user,
+                message: 'Original released to another department.',
+                context: 'custody',
+                custody: $custody,
+                payload: [
+                    'from_department_id' => $fromDepartment?->id,
+                    'to_department_id' => $toDepartment->id,
+                    'copy_kept' => $copyKept,
+                    'copy_storage_location' => $copyStorageLocation,
+                ]
+            );
+
+            if ($remarks !== null && $remarks !== '') {
+                $this->auditService->addRemark(
+                    document: $document,
+                    remark: $remarks,
+                    user: $user,
+                    context: 'custody'
+                );
+            }
+        });
+    }
+
+    /**
+     * Record a retained photocopy entry while releasing original custody.
+     */
+    protected function recordKeptCopy(
+        Document $document,
+        User $user,
+        ?string $storageLocation,
+        ?string $purpose
+    ): DocumentCopy {
+        return $document->copies()->create([
+            'document_transfer_id' => null,
+            'department_id' => $user->department_id,
+            'user_id' => $user->id,
+            'copy_type' => DocumentVersionType::Photocopy,
+            'storage_location' => $storageLocation,
+            'purpose' => $purpose,
+            'recorded_at' => now(),
+            'is_discarded' => false,
+        ]);
     }
 
     /**

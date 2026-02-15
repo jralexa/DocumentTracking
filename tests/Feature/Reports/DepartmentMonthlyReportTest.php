@@ -113,6 +113,26 @@ test('monthly report export returns csv download', function () {
     expect($response->getContent())->toContain($department->name);
 });
 
+test('manager cannot access monthly report for another department', function () {
+    $departmentA = Department::factory()->create(['code' => 'ACC']);
+    $departmentB = Department::factory()->create(['code' => 'BUD']);
+    $manager = User::factory()->create(['role' => UserRole::Manager, 'department_id' => $departmentA->id]);
+
+    $this->actingAs($manager)
+        ->get(route('reports.departments.monthly', [
+            'department_id' => $departmentB->id,
+            'month' => '2026-02',
+        ]))
+        ->assertForbidden();
+
+    $this->actingAs($manager)
+        ->get(route('reports.departments.monthly.export', [
+            'department_id' => $departmentB->id,
+            'month' => '2026-02',
+        ]))
+        ->assertForbidden();
+});
+
 test('monthly report generation job stores csv files for active departments', function () {
     Storage::fake('local');
 

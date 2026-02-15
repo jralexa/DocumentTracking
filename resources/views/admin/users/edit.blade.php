@@ -6,7 +6,9 @@
     </x-slot>
 
     <div class="py-6">
-        <div class="mx-auto max-w-3xl sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-3xl space-y-4 sm:px-6 lg:px-8">
+            @include('admin.users.partials.tabs')
+
             <section class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                 <form method="POST" action="{{ route('admin.users.update', $managedUser) }}" class="space-y-4">
                     @csrf
@@ -48,6 +50,61 @@
                             <x-input-error :messages="$errors->get('department_id')" class="mt-2" />
                         </div>
                     </div>
+
+                    @php
+                        $departmentReassignmentBlockers = session('department_reassignment_blockers');
+                    @endphp
+                    @if (is_array($departmentReassignmentBlockers))
+                        <section class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+                            <h3 class="font-semibold">Department Change Blocked</h3>
+                            <p class="mt-1">
+                                Resolve these items first, then retry department reassignment.
+                            </p>
+
+                            @if (! empty($departmentReassignmentBlockers['for_action_documents']))
+                                <div class="mt-3">
+                                    <p class="text-xs font-semibold uppercase tracking-wide">For Action Documents</p>
+                                    <ul class="mt-2 space-y-1">
+                                        @foreach ($departmentReassignmentBlockers['for_action_documents'] as $documentItem)
+                                            <li>
+                                                <a
+                                                    href="{{ route('documents.track', ['tracking_number' => $documentItem['tracking_number']]) }}"
+                                                    class="font-medium text-amber-900 underline decoration-amber-500 underline-offset-2 hover:text-amber-700"
+                                                >
+                                                    {{ $documentItem['tracking_number'] }}
+                                                </a>
+                                                <span class="text-amber-800">- {{ $documentItem['subject'] ?? 'No subject' }}</span>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+
+                            @if (! empty($departmentReassignmentBlockers['pending_outgoing_transfers']))
+                                <div class="mt-3">
+                                    <p class="text-xs font-semibold uppercase tracking-wide">Pending Outgoing Transfers</p>
+                                    <ul class="mt-2 space-y-1">
+                                        @foreach ($departmentReassignmentBlockers['pending_outgoing_transfers'] as $transferItem)
+                                            <li>
+                                                <a
+                                                    href="{{ route('documents.track', ['tracking_number' => $transferItem['tracking_number']]) }}"
+                                                    class="font-medium text-amber-900 underline decoration-amber-500 underline-offset-2 hover:text-amber-700"
+                                                >
+                                                    {{ $transferItem['tracking_number'] }}
+                                                </a>
+                                                <span class="text-amber-800">
+                                                    - to {{ $transferItem['to_department'] ?? 'Unknown Department' }}
+                                                    @if (! empty($transferItem['forwarded_at']))
+                                                        ({{ $transferItem['forwarded_at'] }})
+                                                    @endif
+                                                </span>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+                        </section>
+                    @endif
 
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div>

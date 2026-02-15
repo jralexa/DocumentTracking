@@ -6,6 +6,7 @@ use App\DocumentVersionType;
 use App\Exceptions\InvalidWorkflowTransitionException;
 use App\Exceptions\UnauthorizedWorkflowActionException;
 use App\Http\Requests\AcceptDocumentRequest;
+use App\Http\Requests\CompleteDocumentRequest;
 use App\Http\Requests\ForwardDocumentRequest;
 use App\Http\Requests\RecallTransferRequest;
 use App\Models\Department;
@@ -84,6 +85,19 @@ class DocumentWorkflowController extends Controller
         $this->runWorkflowAction(fn () => $this->workflowService->recall($transfer, $user));
 
         return back()->with('status', 'Outgoing routing recalled successfully.');
+    }
+
+    /**
+     * Mark a queued document as finished.
+     */
+    public function complete(CompleteDocumentRequest $request, Document $document): RedirectResponse
+    {
+        $user = $this->resolveAuthenticatedUser($request);
+        $remarks = $request->validated('remarks');
+
+        $this->runWorkflowAction(fn () => $this->workflowService->complete($document, $user, $remarks));
+
+        return back()->with('status', 'Document marked as finished.');
     }
 
     /**

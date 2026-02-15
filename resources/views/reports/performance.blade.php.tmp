@@ -5,8 +5,6 @@
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            @include('reports.partials.tabs')
-
             <section class="bg-white shadow-sm rounded-lg border border-gray-200 p-4">
                 <form method="GET" action="{{ route('reports.performance') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <div>

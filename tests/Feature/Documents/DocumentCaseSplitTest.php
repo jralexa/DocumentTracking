@@ -60,6 +60,7 @@ test('assignee can split parent document into routed child documents', function 
     ]);
 
     $response = $this->actingAs($user)->post(route('documents.split.store', $parent), [
+        'confirm_routing_reviewed' => '1',
         'children' => [
             [
                 'subject' => 'Birth Certificate (Original) - Juan P. Dela Cruz',
@@ -178,12 +179,15 @@ test('single child row can route to multiple departments', function () {
     ]);
 
     $response = $this->actingAs($user)->post(route('documents.split.store', $parent), [
+        'confirm_routing_reviewed' => '1',
         'children' => [
             [
                 'subject' => 'NBI Clearance - Juan P. Dela Cruz',
                 'document_type' => 'submission',
                 'owner_type' => 'personal',
                 'owner_name' => 'Juan P. Dela Cruz',
+                'forward_version_type' => DocumentVersionType::Photocopy->value,
+                'original_storage_location' => 'Records Vault Shelf A',
                 'to_department_ids' => [$hr->id, $admin->id],
             ],
         ],
@@ -221,6 +225,7 @@ test('split child can inherit owner from parent by default', function () {
     ]);
 
     $response = $this->actingAs($user)->post(route('documents.split.store', $parent), [
+        'confirm_routing_reviewed' => '1',
         'children' => [
             [
                 'subject' => 'School Endorsement - Reclassification',
@@ -260,6 +265,7 @@ test('split can forward photocopy while keeping original in source custody', fun
     ]);
 
     $response = $this->actingAs($user)->post(route('documents.split.store', $parent), [
+        'confirm_routing_reviewed' => '1',
         'children' => [
             [
                 'subject' => 'NBI Clearance - Juan P. Dela Cruz',
@@ -308,4 +314,40 @@ test('split can forward photocopy while keeping original in source custody', fun
         ->where('department_id', $sourceDepartment->id)
         ->where('storage_location', 'Records Cabinet B-2')
         ->exists())->toBeTrue();
+});
+
+test('original split version cannot route to multiple departments', function () {
+    $sourceDepartment = Department::factory()->create(['name' => 'Records Section']);
+    $hr = Department::factory()->create(['name' => 'HR Unit', 'is_active' => true]);
+    $admin = Department::factory()->create(['name' => 'Admin Unit', 'is_active' => true]);
+    $user = User::factory()->create([
+        'role' => UserRole::Regular,
+        'department_id' => $sourceDepartment->id,
+    ]);
+    $documentCase = DocumentCase::factory()->create(['status' => 'open']);
+
+    $parent = Document::factory()->create([
+        'document_case_id' => $documentCase->id,
+        'current_department_id' => $sourceDepartment->id,
+        'current_user_id' => $user->id,
+        'status' => DocumentWorkflowStatus::OnQueue,
+    ]);
+
+    $response = $this->actingAs($user)->from(route('documents.split.create', $parent))
+        ->post(route('documents.split.store', $parent), [
+            'confirm_routing_reviewed' => '1',
+            'children' => [
+                [
+                    'subject' => 'Original Branch',
+                    'document_type' => 'submission',
+                    'owner_type' => 'personal',
+                    'owner_name' => 'Juan P. Dela Cruz',
+                    'forward_version_type' => DocumentVersionType::Original->value,
+                    'to_department_ids' => [$hr->id, $admin->id],
+                ],
+            ],
+        ]);
+
+    $response->assertRedirect(route('documents.split.create', $parent));
+    $response->assertSessionHasErrors('children.0.to_department_ids');
 });

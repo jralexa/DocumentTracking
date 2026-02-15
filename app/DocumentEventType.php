@@ -8,6 +8,7 @@ enum DocumentEventType: string
     case WorkflowForwarded = 'workflow_forwarded';
     case WorkflowAccepted = 'workflow_accepted';
     case WorkflowRecalled = 'workflow_recalled';
+    case WorkflowCompleted = 'workflow_completed';
     case CustodyAssigned = 'custody_assigned';
     case CustodyDerivativeRecorded = 'custody_derivative_recorded';
     case CustodyReturned = 'custody_returned';

@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\DepartmentMonthlyReportRequest;
 use App\Models\Department;
+use App\Models\User;
 use App\Services\DepartmentMonthlyReportService;
+use App\UserRole;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -22,13 +24,14 @@ class DepartmentMonthlyReportController extends Controller
      */
     public function index(DepartmentMonthlyReportRequest $request): View
     {
-        $departments = $this->availableDepartments();
+        $user = $this->resolveAuthenticatedUser($request);
+        $departments = $this->availableDepartments($user);
         $selectedMonth = $this->resolveMonth($request->validated('month') ?? null);
         $selectedDepartment = $this->resolveDepartment($departments, $request->validated('department_id') ?? null);
 
-        $report = $selectedDepartment === null
-            ? null
-            : $this->reportService->buildReport($selectedDepartment, $selectedMonth);
+        abort_if($selectedDepartment === null, 403, 'No authorized department available for reporting.');
+
+        $report = $this->reportService->buildReport($selectedDepartment, $selectedMonth);
 
         return view('reports.departments.monthly', [
             'departments' => $departments,
@@ -43,10 +46,11 @@ class DepartmentMonthlyReportController extends Controller
      */
     public function export(DepartmentMonthlyReportRequest $request): Response
     {
-        $departments = $this->availableDepartments();
+        $user = $this->resolveAuthenticatedUser($request);
+        $departments = $this->availableDepartments($user);
         $selectedDepartment = $this->resolveDepartment($departments, $request->validated('department_id') ?? null);
 
-        abort_if($selectedDepartment === null, 404, 'No department available for export.');
+        abort_if($selectedDepartment === null, 403, 'No authorized department available for export.');
 
         $selectedMonth = $this->resolveMonth($request->validated('month') ?? null);
 
@@ -70,9 +74,20 @@ class DepartmentMonthlyReportController extends Controller
      *
      * @return Collection<int, Department>
      */
-    protected function availableDepartments(): Collection
+    protected function availableDepartments(User $user): Collection
     {
-        return Department::query()->orderBy('name')->get();
+        if ($this->canViewAllDepartmentReports($user)) {
+            return Department::query()->orderBy('name')->get();
+        }
+
+        if ($user->department_id === null) {
+            return collect();
+        }
+
+        return Department::query()
+            ->whereKey($user->department_id)
+            ->orderBy('name')
+            ->get();
     }
 
     /**
@@ -87,9 +102,31 @@ class DepartmentMonthlyReportController extends Controller
         }
 
         if ($departmentId !== null) {
-            return $departments->firstWhere('id', $departmentId);
+            $selectedDepartment = $departments->firstWhere('id', $departmentId);
+            abort_if($selectedDepartment === null, 403, 'You are not authorized to generate reports for that department.');
+
+            return $selectedDepartment;
         }
 
         return $departments->first();
+    }
+
+    /**
+     * Resolve the current authenticated user.
+     */
+    protected function resolveAuthenticatedUser(DepartmentMonthlyReportRequest $request): User
+    {
+        $user = $request->user();
+        abort_unless($user !== null, 403);
+
+        return $user;
+    }
+
+    /**
+     * Determine whether user can report on all departments.
+     */
+    protected function canViewAllDepartmentReports(User $user): bool
+    {
+        return $user->hasRole(UserRole::Admin);
     }
 }
