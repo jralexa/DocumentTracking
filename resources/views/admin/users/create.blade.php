@@ -48,17 +48,8 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <div>
-                            <x-input-label for="password" :value="__('Password')" />
-                            <x-text-input id="password" name="password" type="password" class="mt-1 block w-full" required />
-                            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-                        </div>
-
-                        <div>
-                            <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
-                            <x-text-input id="password_confirmation" name="password_confirmation" type="password" class="mt-1 block w-full" required />
-                        </div>
+                    <div class="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                        The system will automatically generate a temporary password and send it to the user's email.
                     </div>
 
                     <div class="flex items-center justify-end gap-2 pt-2">

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\DocumentVersionType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -33,6 +34,10 @@ class ForwardDocumentRequest extends FormRequest
                 Rule::notIn([$currentDepartmentId]),
             ],
             'remarks' => ['nullable', 'string', 'max:1000'],
+            'forward_version_type' => ['nullable', Rule::in(array_map(static fn (DocumentVersionType $type): string => $type->value, DocumentVersionType::cases()))],
+            'copy_kept' => ['nullable', 'boolean'],
+            'copy_storage_location' => ['nullable', 'required_if:copy_kept,1', 'string', 'max:255'],
+            'copy_purpose' => ['nullable', 'string', 'max:1000'],
         ];
     }
 
@@ -45,6 +50,7 @@ class ForwardDocumentRequest extends FormRequest
     {
         return [
             'to_department_id.not_in' => 'Destination department must be different from the current department.',
+            'copy_storage_location.required_if' => 'Storage location is required when keeping a copy.',
         ];
     }
 }

@@ -15,9 +15,7 @@ class DocumentRelationshipService
     /**
      * Create a new service instance.
      */
-    public function __construct(protected DocumentAuditService $auditService)
-    {
-    }
+    public function __construct(protected DocumentAuditService $auditService) {}
 
     /**
      * Link two documents using a specific relationship type.
@@ -33,7 +31,7 @@ class DocumentRelationshipService
         ?array $metadata = null
     ): DocumentRelationship {
         if ($sourceDocument->is($relatedDocument)) {
-            throw new InvalidDocumentRelationshipException('A document cannot be related to itself.');
+            $this->throwInvalidRelationship('A document cannot be related to itself.');
         }
 
         return DB::transaction(function () use ($sourceDocument, $relatedDocument, $relationType, $createdBy, $notes, $metadata): DocumentRelationship {
@@ -166,8 +164,7 @@ class DocumentRelationshipService
         Document $rightDocument,
         ?User $createdBy = null,
         ?string $notes = null
-    ): void
-    {
+    ): void {
         DB::transaction(function () use ($leftDocument, $rightDocument, $createdBy, $notes): void {
             $this->link(
                 sourceDocument: $leftDocument,
@@ -185,5 +182,15 @@ class DocumentRelationshipService
                 notes: $notes
             );
         });
+    }
+
+    /**
+     * Throw a relationship domain exception.
+     *
+     * @throws InvalidDocumentRelationshipException
+     */
+    protected function throwInvalidRelationship(string $message): never
+    {
+        throw new InvalidDocumentRelationshipException($message);
     }
 }

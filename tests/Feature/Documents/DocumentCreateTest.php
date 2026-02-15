@@ -7,6 +7,7 @@ use App\Models\Document;
 use App\Models\DocumentCase;
 use App\Models\DocumentItem;
 use App\Models\User;
+use App\TransferStatus;
 use App\UserRole;
 
 test('document creation form is available for processing users', function () {
@@ -19,10 +20,10 @@ test('document creation form is available for processing users', function () {
     $response = $this->actingAs($user)->get(route('documents.create'));
 
     $response->assertSuccessful();
-    $response->assertSee('Add Document');
+    $response->assertSee('Receive and Record Document');
 });
 
-test('guest role cannot access document creation form', function () {
+test('guest role can access document creation form', function () {
     $department = Department::factory()->create();
     $guest = User::factory()->create([
         'role' => UserRole::Guest,
@@ -31,7 +32,42 @@ test('guest role cannot access document creation form', function () {
 
     $response = $this->actingAs($guest)->get(route('documents.create'));
 
-    $response->assertForbidden();
+    $response->assertSuccessful();
+});
+
+test('guest role can create document from frontend form', function () {
+    $recordsDepartment = Department::factory()->create([
+        'code' => 'RECORDS',
+        'name' => 'Records Section',
+        'is_active' => true,
+    ]);
+
+    $guest = User::factory()->create([
+        'role' => UserRole::Guest,
+        'department_id' => null,
+    ]);
+
+    $payload = [
+        'quick_mode' => '1',
+        'subject' => 'Incoming communication for records',
+        'document_type' => 'communication',
+        'owner_type' => 'others',
+        'owner_name' => 'External Office',
+    ];
+
+    $response = $this->actingAs($guest)->post(route('documents.store'), $payload);
+
+    $response->assertRedirect(route('documents.create'));
+    $response->assertSessionHas('status');
+
+    $document = Document::query()->first();
+    expect($document)->not->toBeNull();
+    expect($document?->current_user_id)->toBeNull();
+    expect($document?->current_department_id)->toBe($recordsDepartment->id);
+    expect($document?->status)->toBe(DocumentWorkflowStatus::Outgoing);
+    expect($document?->transfers()->count())->toBe(1);
+    expect($document?->transfers()->first()?->status)->toBe(TransferStatus::Pending);
+    expect($document?->transfers()->first()?->to_department_id)->toBe($recordsDepartment->id);
 });
 
 test('user can create a document from the frontend form', function () {

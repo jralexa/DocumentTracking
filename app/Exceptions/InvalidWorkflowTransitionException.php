@@ -2,9 +2,4 @@
 
 namespace App\Exceptions;
 
-use RuntimeException;
-
-class InvalidWorkflowTransitionException extends RuntimeException
-{
-}
-
+class InvalidWorkflowTransitionException extends DomainException {}

@@ -31,6 +31,8 @@ class DocumentFactory extends Factory
             'subject' => fake()->sentence(8),
             'document_type' => fake()->randomElement(['communication', 'submission', 'request', 'for_processing']),
             'owner_type' => fake()->randomElement(['district', 'school', 'personal', 'others']),
+            'owner_district_id' => null,
+            'owner_school_id' => null,
             'owner_name' => fake()->name(),
             'status' => fake()->randomElement([
                 DocumentWorkflowStatus::Incoming,

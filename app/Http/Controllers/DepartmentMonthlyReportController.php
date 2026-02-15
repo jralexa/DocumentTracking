@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Services\DepartmentMonthlyReportService;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class DepartmentMonthlyReportController extends Controller
@@ -14,16 +15,14 @@ class DepartmentMonthlyReportController extends Controller
     /**
      * Create a new controller instance.
      */
-    public function __construct(protected DepartmentMonthlyReportService $reportService)
-    {
-    }
+    public function __construct(protected DepartmentMonthlyReportService $reportService) {}
 
     /**
      * Show monthly report dashboard for departments.
      */
     public function index(DepartmentMonthlyReportRequest $request): View
     {
-        $departments = Department::query()->orderBy('name')->get();
+        $departments = $this->availableDepartments();
         $selectedMonth = $this->resolveMonth($request->validated('month') ?? null);
         $selectedDepartment = $this->resolveDepartment($departments, $request->validated('department_id') ?? null);
 
@@ -44,7 +43,7 @@ class DepartmentMonthlyReportController extends Controller
      */
     public function export(DepartmentMonthlyReportRequest $request): Response
     {
-        $departments = Department::query()->orderBy('name')->get();
+        $departments = $this->availableDepartments();
         $selectedDepartment = $this->resolveDepartment($departments, $request->validated('department_id') ?? null);
 
         abort_if($selectedDepartment === null, 404, 'No department available for export.');
@@ -67,11 +66,21 @@ class DepartmentMonthlyReportController extends Controller
     }
 
     /**
+     * Get departments available to reporting screens.
+     *
+     * @return Collection<int, Department>
+     */
+    protected function availableDepartments(): Collection
+    {
+        return Department::query()->orderBy('name')->get();
+    }
+
+    /**
      * Resolve selected department from available collection.
      *
-     * @param  \Illuminate\Support\Collection<int, Department>  $departments
+     * @param  Collection<int, Department>  $departments
      */
-    protected function resolveDepartment($departments, ?int $departmentId): ?Department
+    protected function resolveDepartment(Collection $departments, ?int $departmentId): ?Department
     {
         if ($departments->isEmpty()) {
             return null;

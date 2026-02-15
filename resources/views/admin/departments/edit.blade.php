@@ -36,7 +36,7 @@
                     </label>
 
                     <div class="flex items-center justify-end gap-2 pt-2">
-                        <a href="{{ route('admin.departments.index') }}" class="inline-flex items-center rounded-md border border-gray-300 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-700 hover:bg-gray-100">
+                        <a href="{{ route('admin.organization.index', ['tab' => 'departments']) }}" class="inline-flex items-center rounded-md border border-gray-300 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-700 hover:bg-gray-100">
                             Cancel
                         </a>
                         <x-primary-button>Update Department</x-primary-button>

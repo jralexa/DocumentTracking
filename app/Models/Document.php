@@ -3,15 +3,15 @@
 namespace App\Models;
 
 use App\DocumentRelationshipType;
-use App\DocumentWorkflowStatus;
 use App\DocumentVersionType;
+use App\DocumentWorkflowStatus;
 use App\TransferStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Model;
 
 class Document extends Model
 {
@@ -32,6 +32,8 @@ class Document extends Model
         'subject',
         'document_type',
         'owner_type',
+        'owner_district_id',
+        'owner_school_id',
         'owner_name',
         'status',
         'priority',
@@ -108,6 +110,22 @@ class Document extends Model
     }
 
     /**
+     * Get the related owner district when owner type is district or school.
+     */
+    public function ownerDistrict(): BelongsTo
+    {
+        return $this->belongsTo(District::class, 'owner_district_id');
+    }
+
+    /**
+     * Get the related owner school when owner type is school.
+     */
+    public function ownerSchool(): BelongsTo
+    {
+        return $this->belongsTo(School::class, 'owner_school_id');
+    }
+
+    /**
      * Get all items under this document.
      */
     public function items(): HasMany
@@ -145,6 +163,14 @@ class Document extends Model
     public function custodies(): HasMany
     {
         return $this->hasMany(DocumentCustody::class);
+    }
+
+    /**
+     * Get all copy records for this document.
+     */
+    public function copies(): HasMany
+    {
+        return $this->hasMany(DocumentCopy::class);
     }
 
     /**
@@ -219,11 +245,12 @@ class Document extends Model
     public function scopeForIncomingQueue(Builder $query, User $user): Builder
     {
         return $query
-            ->whereHas('latestTransfer', function ($transferQuery) use ($user) {
-                $transferQuery
-                    ->where('to_department_id', $user->department_id)
-                    ->where('status', TransferStatus::Pending->value)
-                    ->whereNull('accepted_at');
+            ->whereHas('latestTransfer', function ($transferQuery) use ($user): void {
+                $this->applyPendingLatestTransferFilter(
+                    query: $transferQuery,
+                    key: 'to_department_id',
+                    value: $user->department_id
+                );
             })
             ->where('status', DocumentWorkflowStatus::Outgoing->value);
     }
@@ -245,12 +272,24 @@ class Document extends Model
     public function scopeForOutgoing(Builder $query, User $user): Builder
     {
         return $query
-            ->whereHas('latestTransfer', function ($transferQuery) use ($user) {
-                $transferQuery
-                    ->where('forwarded_by_user_id', $user->id)
-                    ->where('status', TransferStatus::Pending->value)
-                    ->whereNull('accepted_at');
+            ->whereHas('latestTransfer', function ($transferQuery) use ($user): void {
+                $this->applyPendingLatestTransferFilter(
+                    query: $transferQuery,
+                    key: 'forwarded_by_user_id',
+                    value: $user->id
+                );
             })
             ->where('status', DocumentWorkflowStatus::Outgoing->value);
+    }
+
+    /**
+     * Apply pending latest transfer constraints for queue queries.
+     */
+    protected function applyPendingLatestTransferFilter(Builder $query, string $key, ?int $value): void
+    {
+        $query
+            ->where($key, $value)
+            ->where('status', TransferStatus::Pending->value)
+            ->whereNull('accepted_at');
     }
 }

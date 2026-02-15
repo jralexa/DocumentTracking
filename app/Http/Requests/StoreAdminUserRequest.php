@@ -28,7 +28,6 @@ class StoreAdminUserRequest extends FormRequest
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'role' => ['required', Rule::in(array_map(static fn (UserRole $role): string => $role->value, UserRole::cases()))],
             'department_id' => ['nullable', 'exists:departments,id'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ];
     }
 }

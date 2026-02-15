@@ -1,0 +1,144 @@
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ __('Custody Report') }}</h2>
+    </x-slot>
+
+    <div class="py-8">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            <section class="bg-white shadow-sm rounded-lg border border-gray-200 p-4">
+                <form method="GET" action="{{ route('reports.custody') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div>
+                        <x-input-label for="department_id" :value="__('Department')" />
+                        <select id="department_id" name="department_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">All Departments</option>
+                            @foreach ($activeDepartments as $department)
+                                <option value="{{ $department->id }}" @selected((string) $filters['department_id'] === (string) $department->id)>
+                                    {{ $department->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="flex gap-2">
+                        <x-primary-button>{{ __('Generate') }}</x-primary-button>
+                    </div>
+                    <div class="md:text-right">
+                        <a href="{{ route('reports.custody') }}" class="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest hover:bg-gray-200 transition">
+                            {{ __('Reset') }}
+                        </a>
+                    </div>
+                </form>
+            </section>
+
+            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <p class="text-xs uppercase text-gray-500">Current Originals</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ $metrics['current_originals'] }}</p>
+                </div>
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <p class="text-xs uppercase text-gray-500">Active Copies</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ $metrics['active_copies'] }}</p>
+                </div>
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <p class="text-xs uppercase text-gray-500">Returnable Pending</p>
+                    <p class="text-2xl font-semibold text-amber-700">{{ $metrics['returnable_pending'] }}</p>
+                </div>
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <p class="text-xs uppercase text-gray-500">Returnable Overdue</p>
+                    <p class="text-2xl font-semibold text-red-700">{{ $metrics['returnable_overdue'] }}</p>
+                </div>
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <p class="text-xs uppercase text-gray-500">Returnable Returned</p>
+                    <p class="text-2xl font-semibold text-green-700">{{ $metrics['returnable_returned'] }}</p>
+                </div>
+            </section>
+
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <article class="bg-white border border-gray-200 rounded-lg p-4">
+                    <h3 class="font-semibold text-gray-900 mb-3">Latest Original Custodies</h3>
+                    <div class="overflow-auto">
+                        <table class="min-w-full text-sm">
+                            <thead>
+                                <tr class="text-left text-gray-500">
+                                    <th class="py-2 pr-4">Tracking</th>
+                                    <th class="py-2 pr-4">Department</th>
+                                    <th class="py-2">Location</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($latestOriginalCustodies as $row)
+                                    <tr class="border-t border-gray-100">
+                                        <td class="py-2 pr-4">{{ $row->document?->metadata['display_tracking'] ?? $row->document?->tracking_number }}</td>
+                                        <td class="py-2 pr-4">{{ $row->department?->name ?? '-' }}</td>
+                                        <td class="py-2">{{ $row->physical_location ?? '-' }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td class="py-2 text-gray-500" colspan="3">No original custody records found.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+
+                <article class="bg-white border border-gray-200 rounded-lg p-4">
+                    <h3 class="font-semibold text-gray-900 mb-3">Latest Copy Records</h3>
+                    <div class="overflow-auto">
+                        <table class="min-w-full text-sm">
+                            <thead>
+                                <tr class="text-left text-gray-500">
+                                    <th class="py-2 pr-4">Tracking</th>
+                                    <th class="py-2 pr-4">Copy Type</th>
+                                    <th class="py-2">Department</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($latestCopies as $row)
+                                    <tr class="border-t border-gray-100">
+                                        <td class="py-2 pr-4">{{ $row->document?->metadata['display_tracking'] ?? $row->document?->tracking_number }}</td>
+                                        <td class="py-2 pr-4">{{ str_replace('_', ' ', ucfirst($row->copy_type->value)) }}</td>
+                                        <td class="py-2">{{ $row->department?->name ?? '-' }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td class="py-2 text-gray-500" colspan="3">No copy records found.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+            </section>
+
+            <section class="bg-white border border-gray-200 rounded-lg p-4">
+                <h3 class="font-semibold text-gray-900 mb-3">Overdue Returnables</h3>
+                <div class="overflow-auto">
+                    <table class="min-w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-gray-500">
+                                <th class="py-2 pr-4">Tracking</th>
+                                <th class="py-2 pr-4">Subject</th>
+                                <th class="py-2 pr-4">Owner</th>
+                                <th class="py-2">Deadline</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($overdueReturnables as $document)
+                                <tr class="border-t border-gray-100">
+                                    <td class="py-2 pr-4">{{ $document->metadata['display_tracking'] ?? $document->tracking_number }}</td>
+                                    <td class="py-2 pr-4">{{ $document->subject }}</td>
+                                    <td class="py-2 pr-4">{{ $document->owner_name }}</td>
+                                    <td class="py-2">{{ $document->return_deadline?->format('M d, Y') ?? '-' }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td class="py-2 text-gray-500" colspan="4">No overdue returnable documents.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+</x-app-layout>

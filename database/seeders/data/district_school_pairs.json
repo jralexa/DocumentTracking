@@ -1,0 +1,1438 @@
+[
+  {
+    "district": "Anahawan",
+    "school": "Amagusan ES"
+  },
+  {
+    "district": "Anahawan",
+    "school": "Anahawan CS"
+  },
+  {
+    "district": "Anahawan",
+    "school": "Anahawan NVHS"
+  },
+  {
+    "district": "Anahawan",
+    "school": "Calinta-an MGES"
+  },
+  {
+    "district": "Anahawan",
+    "school": "Capacuhan ES"
+  },
+  {
+    "district": "Anahawan",
+    "school": "Lewing MGES"
+  },
+  {
+    "district": "Anahawan",
+    "school": "Mahalo ES"
+  },
+  {
+    "district": "Anahawan",
+    "school": "Manigawong MGES"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Banahao MGES"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Baugo MGES"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Beniton Integrated School"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Beniton IS"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Bontoc CS"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Bontoc NHS"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Casao MGES"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Esperanza ES"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Guinsangaan MGES"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Hibagwan PS"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Hilaan ES"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Hilaan NHS"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Himakilo PS"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Hitawos IS"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Lawgawan PS"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Malbago MGES"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Olisihan MGES"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Pamigsian MGES"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Pangi MGES"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Sta. Cruz ES"
+  },
+  {
+    "district": "Bontoc 1",
+    "school": "Taa ES"
+  },
+  {
+    "district": "Bontoc 2",
+    "school": "Anahao PS"
+  },
+  {
+    "district": "Bontoc 2",
+    "school": "Buenavista IS"
+  },
+  {
+    "district": "Bontoc 2",
+    "school": "Bunga ES"
+  },
+  {
+    "district": "Bontoc 2",
+    "school": "Catmon MGES"
+  },
+  {
+    "district": "Bontoc 2",
+    "school": "Catuogan MGES"
+  },
+  {
+    "district": "Bontoc 2",
+    "school": "Cawayanan ES"
+  },
+  {
+    "district": "Bontoc 2",
+    "school": "Divisoria ES"
+  },
+  {
+    "district": "Bontoc 2",
+    "school": "Divisoria NHS"
+  },
+  {
+    "district": "Bontoc 2",
+    "school": "Lanao MGES"
+  },
+  {
+    "district": "Bontoc 2",
+    "school": "Mahayahay ES"
+  },
+  {
+    "district": "Bontoc 2",
+    "school": "Mauylab MGES"
+  },
+  {
+    "district": "Bontoc 2",
+    "school": "Paku ES"
+  },
+  {
+    "district": "Bontoc 2",
+    "school": "Paku NHS"
+  },
+  {
+    "district": "Bontoc 2",
+    "school": "Pamahawan MGES"
+  },
+  {
+    "district": "Bontoc 2",
+    "school": "Sampongon ES"
+  },
+  {
+    "district": "Bontoc 2",
+    "school": "San Vicente PS"
+  },
+  {
+    "district": "Bontoc 2",
+    "school": "Union ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Ambacon ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Biasong ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Bugho Es"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Calag-itan ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Calinao ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Canipaan ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Canipaan NHS"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Catublian ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Hinunangan Bethel Christian School, Inc."
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Hinunangan East CS"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Hinunangan NHS"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Hinunangan West CS"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Ilaya Elementary School"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Ingan ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Kabaskan ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Kabaskan PS"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Libas ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Lumbog ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Manalog Elementary School"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Manalog ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Manlico ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Matin-ao ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Nava ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Nava NHS"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Nueva Esperanza ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Otama ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Palongpong ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Patong ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Pondol ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "San Pablo IS"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "San Pedro ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Senda PS"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Sto. NINO II ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Sto. Nino NHS"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Sto. Ni\u00f1o NHS"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Tahusan ES"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Tawog PS"
+  },
+  {
+    "district": "Hinunangan",
+    "school": "Tuburan ES"
+  },
+  {
+    "district": "Hinundayan",
+    "school": "Amaga ES"
+  },
+  {
+    "district": "Hinundayan",
+    "school": "Ambao ES"
+  },
+  {
+    "district": "Hinundayan",
+    "school": "An-An MGES"
+  },
+  {
+    "district": "Hinundayan",
+    "school": "Baculod MGES"
+  },
+  {
+    "district": "Hinundayan",
+    "school": "Biasong MGES"
+  },
+  {
+    "district": "Hinundayan",
+    "school": "Bugho ES"
+  },
+  {
+    "district": "Hinundayan",
+    "school": "Cabulisan MGES"
+  },
+  {
+    "district": "Hinundayan",
+    "school": "Cat-iwing MGES"
+  },
+  {
+    "district": "Hinundayan",
+    "school": "Hinundayan Catholic Institute"
+  },
+  {
+    "district": "Hinundayan",
+    "school": "Hinundayan Catholic Institute, Inc."
+  },
+  {
+    "district": "Hinundayan",
+    "school": "Hinundayan CS"
+  },
+  {
+    "district": "Hinundayan",
+    "school": "Hubasan ES"
+  },
+  {
+    "district": "Hinundayan",
+    "school": "Lungsodaan ES"
+  },
+  {
+    "district": "Hinundayan",
+    "school": "Lungsodaan NHS"
+  },
+  {
+    "district": "Hinundayan",
+    "school": "Navalita MGES"
+  },
+  {
+    "district": "Hinundayan",
+    "school": "Plaridel MGES"
+  },
+  {
+    "district": "Hinundayan",
+    "school": "Sagbok ES"
+  },
+  {
+    "district": "Libagon",
+    "school": "Gakat ES"
+  },
+  {
+    "district": "Libagon",
+    "school": "Kawayan ES"
+  },
+  {
+    "district": "Libagon",
+    "school": "Libagon CS"
+  },
+  {
+    "district": "Libagon",
+    "school": "Libagon NHS"
+  },
+  {
+    "district": "Libagon",
+    "school": "Magkasag ES"
+  },
+  {
+    "district": "Libagon",
+    "school": "Mayuga ES"
+  },
+  {
+    "district": "Libagon",
+    "school": "Nahulid ES"
+  },
+  {
+    "district": "Libagon",
+    "school": "Otikon ES"
+  },
+  {
+    "district": "Libagon",
+    "school": "RMSMNHS"
+  },
+  {
+    "district": "Libagon",
+    "school": "Tigbao ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "Amaga ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "Anilao ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "Bahay ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "Cagbungalon ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "Calian ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "Caligangan ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "Candayuman ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "Catig ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "Estela ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "Estela NHS"
+  },
+  {
+    "district": "Liloan",
+    "school": "Fatima PS"
+  },
+  {
+    "district": "Liloan",
+    "school": "Guintoylan ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "Himay-angan ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "Himayangan NHS"
+  },
+  {
+    "district": "Liloan",
+    "school": "Ilag ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "Liloan CS"
+  },
+  {
+    "district": "Liloan",
+    "school": "Liloan NTVHS"
+  },
+  {
+    "district": "Liloan",
+    "school": "Magaupas ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "Mariano Silot Memorial ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "New Malangza ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "Pandan ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "Pres. Quezon ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "Pres. Roxas ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "San Isidro ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "San Roque ES"
+  },
+  {
+    "district": "Liloan",
+    "school": "Tabugon ES"
+  },
+  {
+    "district": "Limasawa",
+    "school": "Limasawa NHS"
+  },
+  {
+    "district": "Limasawa",
+    "school": "Lugsongan ES"
+  },
+  {
+    "district": "Limasawa",
+    "school": "Magallanes ES"
+  },
+  {
+    "district": "Limasawa",
+    "school": "San Agustin ES"
+  },
+  {
+    "district": "Limasawa",
+    "school": "San Bernardo ES"
+  },
+  {
+    "district": "Limasawa",
+    "school": "Triana ES"
+  },
+  {
+    "district": "Macrohon",
+    "school": "Aguinaldo ES"
+  },
+  {
+    "district": "Macrohon",
+    "school": "Amparo ES"
+  },
+  {
+    "district": "Macrohon",
+    "school": "Asuncion MGES"
+  },
+  {
+    "district": "Macrohon",
+    "school": "Bagong Silang MGS"
+  },
+  {
+    "district": "Macrohon",
+    "school": "Bus-Canlusay ES"
+  },
+  {
+    "district": "Macrohon",
+    "school": "Cambaro ES"
+  },
+  {
+    "district": "Macrohon",
+    "school": "Flordeliz ES"
+  },
+  {
+    "district": "Macrohon",
+    "school": "Ichon ES"
+  },
+  {
+    "district": "Macrohon",
+    "school": "Ichon NHS"
+  },
+  {
+    "district": "Macrohon",
+    "school": "Ilihan ES"
+  },
+  {
+    "district": "Macrohon",
+    "school": "Laray ES"
+  },
+  {
+    "district": "Macrohon",
+    "school": "Mabini ES"
+  },
+  {
+    "district": "Macrohon",
+    "school": "Macrohon CS"
+  },
+  {
+    "district": "Macrohon",
+    "school": "Molopolo ES"
+  },
+  {
+    "district": "Macrohon",
+    "school": "Rizal ES"
+  },
+  {
+    "district": "Macrohon",
+    "school": "Salvador MGES"
+  },
+  {
+    "district": "Macrohon",
+    "school": "San Isidro ES"
+  },
+  {
+    "district": "Macrohon",
+    "school": "San Joaquin ES"
+  },
+  {
+    "district": "Macrohon",
+    "school": "San Roque ES"
+  },
+  {
+    "district": "Macrohon",
+    "school": "San Roque NHS"
+  },
+  {
+    "district": "Macrohon",
+    "school": "Sindangan ES"
+  },
+  {
+    "district": "Macrohon",
+    "school": "Sto. Ni\u00f1o ES"
+  },
+  {
+    "district": "Macrohon",
+    "school": "Villa Jacinta ES"
+  },
+  {
+    "district": "Macrohon",
+    "school": "Villa Jacinta NVHS"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Abgao ES"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Aurora ES"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Benit ES"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Cadaruhan ES"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Cadaruhan Integrated School"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Cambalhin ES"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Cantamuac ES"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Caraatan ES"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Concepcion ES"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Concepcion NHS"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Guinabonan ES"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Juangon ES"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Kauswagan ES"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Lambonao ES"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Malitbog CS"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Malitbog NHS"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Maningning ES"
+  },
+  {
+    "district": "Malitbog",
+    "school": "San Jose ES"
+  },
+  {
+    "district": "Malitbog",
+    "school": "San Vicente ES"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Sangahon ES"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Sta. Cruz ES"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Sta. Cruz NHS"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Tigbawan ES"
+  },
+  {
+    "district": "Malitbog",
+    "school": "Timba ES"
+  },
+  {
+    "district": "Padre Burgos",
+    "school": "Bunga EMGS"
+  },
+  {
+    "district": "Padre Burgos",
+    "school": "Bunga ES"
+  },
+  {
+    "district": "Padre Burgos",
+    "school": "Cantutang ES"
+  },
+  {
+    "district": "Padre Burgos",
+    "school": "Dinahugan PS"
+  },
+  {
+    "district": "Padre Burgos",
+    "school": "Laca ES"
+  },
+  {
+    "district": "Padre Burgos",
+    "school": "Lungsodaan ES"
+  },
+  {
+    "district": "Padre Burgos",
+    "school": "Padre Burgos CS"
+  },
+  {
+    "district": "Padre Burgos",
+    "school": "Padre Burgos NTVHS"
+  },
+  {
+    "district": "Padre Burgos",
+    "school": "San Juan ES"
+  },
+  {
+    "district": "Padre Burgos",
+    "school": "San Juan ES w/ SPED"
+  },
+  {
+    "district": "Padre Burgos",
+    "school": "Santo Rosario ES"
+  },
+  {
+    "district": "Padre Burgos",
+    "school": "Tangkaan ES"
+  },
+  {
+    "district": "Pintuyan",
+    "school": "Buenavista ES"
+  },
+  {
+    "district": "Pintuyan",
+    "school": "Bulawan PS"
+  },
+  {
+    "district": "Pintuyan",
+    "school": "Catbawan ES"
+  },
+  {
+    "district": "Pintuyan",
+    "school": "Cogon ES"
+  },
+  {
+    "district": "Pintuyan",
+    "school": "Dan-an ES"
+  },
+  {
+    "district": "Pintuyan",
+    "school": "Manglit ES"
+  },
+  {
+    "district": "Pintuyan",
+    "school": "Nueva Estrella ES"
+  },
+  {
+    "district": "Pintuyan",
+    "school": "Pintuyan CS"
+  },
+  {
+    "district": "Pintuyan",
+    "school": "Pintuyan NHS"
+  },
+  {
+    "district": "Pintuyan",
+    "school": "Pintuyan NVHS"
+  },
+  {
+    "district": "Pintuyan",
+    "school": "Punod PS"
+  },
+  {
+    "district": "Pintuyan",
+    "school": "San Agustin ES"
+  },
+  {
+    "district": "Pintuyan",
+    "school": "Son-ok ES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Atuyan MGES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Ayahag ES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Bantawon MGES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Bolodbolod ES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Carnaga MGES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Catmon IS"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Himbangan ES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Himbangan NHS"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Himos-onan ES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Hindag-an ES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Libas MGES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Lipanto ES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Ma. Asuncion ES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Magbagacay ES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Mahayag ES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Mahayahay ES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Mahika ES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Malinao MGES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "New Guinsaugon ES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "New Guinsaugon NHS"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Nueva Esperanza ES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Panian ES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Saint Bernard CS"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "San Isidro ES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Sta.Cruz MGES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Sug-Angon PS"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Tabontabon ES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Tambis I ES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Tambis II MG ES"
+  },
+  {
+    "district": "Saint Bernard",
+    "school": "Tambis NHS"
+  },
+  {
+    "district": "San Francisco",
+    "school": "Anislagon PS"
+  },
+  {
+    "district": "San Francisco",
+    "school": "Bongawisan ES"
+  },
+  {
+    "district": "San Francisco",
+    "school": "Bongbong ES"
+  },
+  {
+    "district": "San Francisco",
+    "school": "Celestino A. Ablas Sr. Academy Foundation Inc. - Saint Joseph College Extension"
+  },
+  {
+    "district": "San Francisco",
+    "school": "Celestino A. Ablas Sr. Academy Foundation Inc.- Saint Joseph College Extension"
+  },
+  {
+    "district": "San Francisco",
+    "school": "Habay ES"
+  },
+  {
+    "district": "San Francisco",
+    "school": "Marayag ES"
+  },
+  {
+    "district": "San Francisco",
+    "school": "Marayag NHS"
+  },
+  {
+    "district": "San Francisco",
+    "school": "Napantao ES"
+  },
+  {
+    "district": "San Francisco",
+    "school": "Pinamudlan ES"
+  },
+  {
+    "district": "San Francisco",
+    "school": "San Francisco CS"
+  },
+  {
+    "district": "San Francisco",
+    "school": "San Francisco NHS"
+  },
+  {
+    "district": "San Francisco",
+    "school": "Sta. Paz ES"
+  },
+  {
+    "district": "San Francisco",
+    "school": "Sta. Paz NHS"
+  },
+  {
+    "district": "San Francisco",
+    "school": "Sudmon ES"
+  },
+  {
+    "district": "San Francisco",
+    "school": "Tuno ES"
+  },
+  {
+    "district": "San Juan",
+    "school": "Agay-ay ES"
+  },
+  {
+    "district": "San Juan",
+    "school": "Basak ES"
+  },
+  {
+    "district": "San Juan",
+    "school": "Bobon ES"
+  },
+  {
+    "district": "San Juan",
+    "school": "Dayanog ES"
+  },
+  {
+    "district": "San Juan",
+    "school": "Garsavic ES"
+  },
+  {
+    "district": "San Juan",
+    "school": "Pong-oy ES"
+  },
+  {
+    "district": "San Juan",
+    "school": "San Juan ES w/ SPED"
+  },
+  {
+    "district": "San Juan",
+    "school": "San Juan NHS"
+  },
+  {
+    "district": "San Juan",
+    "school": "Somoje ES"
+  },
+  {
+    "district": "San Juan",
+    "school": "Sta. Filomena ES"
+  },
+  {
+    "district": "San Juan",
+    "school": "Sua ES"
+  },
+  {
+    "district": "San Juan",
+    "school": "Timba ES"
+  },
+  {
+    "district": "San Ricardo",
+    "school": "Benit ES"
+  },
+  {
+    "district": "San Ricardo",
+    "school": "Camang ES"
+  },
+  {
+    "district": "San Ricardo",
+    "school": "Esperanza ES"
+  },
+  {
+    "district": "San Ricardo",
+    "school": "Esperanza NHS"
+  },
+  {
+    "district": "San Ricardo",
+    "school": "Kinachawa ES"
+  },
+  {
+    "district": "San Ricardo",
+    "school": "Pinut-an ES"
+  },
+  {
+    "district": "San Ricardo",
+    "school": "Pinut-an NHS"
+  },
+  {
+    "district": "San Ricardo",
+    "school": "San Ramon ES"
+  },
+  {
+    "district": "San Ricardo",
+    "school": "San Ricardo CS"
+  },
+  {
+    "district": "San Ricardo",
+    "school": "San Ricardo NHS"
+  },
+  {
+    "district": "San Ricardo",
+    "school": "Saub Integrated School"
+  },
+  {
+    "district": "San Ricardo",
+    "school": "Saub IS"
+  },
+  {
+    "district": "Silago",
+    "school": "Awayon ES"
+  },
+  {
+    "district": "Silago",
+    "school": "Balagawan ES"
+  },
+  {
+    "district": "Silago",
+    "school": "Catmon ES"
+  },
+  {
+    "district": "Silago",
+    "school": "Hingatungan ES"
+  },
+  {
+    "district": "Silago",
+    "school": "Hingatungan NHS"
+  },
+  {
+    "district": "Silago",
+    "school": "Imelda PS"
+  },
+  {
+    "district": "Silago",
+    "school": "Katipunan ES"
+  },
+  {
+    "district": "Silago",
+    "school": "Katipunan NHS"
+  },
+  {
+    "district": "Silago",
+    "school": "Lagoma ES"
+  },
+  {
+    "district": "Silago",
+    "school": "Mercedes NHS"
+  },
+  {
+    "district": "Silago",
+    "school": "Puntana PS"
+  },
+  {
+    "district": "Silago",
+    "school": "Salvacion ES"
+  },
+  {
+    "district": "Silago",
+    "school": "Sap-ang ES"
+  },
+  {
+    "district": "Silago",
+    "school": "Silago CS"
+  },
+  {
+    "district": "Silago",
+    "school": "Silago NVHS"
+  },
+  {
+    "district": "Silago",
+    "school": "Sudmon ES"
+  },
+  {
+    "district": "Silago",
+    "school": "Tuba-on ES"
+  },
+  {
+    "district": "Silago",
+    "school": "Tubod ES"
+  },
+  {
+    "district": "Sogod I",
+    "school": "Cabadbaran PS"
+  },
+  {
+    "district": "Sogod I",
+    "school": "Hindangan PS"
+  },
+  {
+    "district": "Sogod I",
+    "school": "Kauswagan ES"
+  },
+  {
+    "district": "Sogod I",
+    "school": "Libas ES"
+  },
+  {
+    "district": "Sogod I",
+    "school": "Libas NHS"
+  },
+  {
+    "district": "Sogod I",
+    "school": "Lum-an MGES"
+  },
+  {
+    "district": "Sogod I",
+    "school": "Lum-an PS"
+  },
+  {
+    "district": "Sogod I",
+    "school": "Mabicay ES"
+  },
+  {
+    "district": "Sogod I",
+    "school": "Milagroso ES"
+  },
+  {
+    "district": "Sogod I",
+    "school": "Rizal PS"
+  },
+  {
+    "district": "Sogod I",
+    "school": "San Pedro ES"
+  },
+  {
+    "district": "Sogod I",
+    "school": "Sogod CS w/ SPED Center"
+  },
+  {
+    "district": "Sogod I",
+    "school": "Sogod NHS"
+  },
+  {
+    "district": "Sogod I",
+    "school": "Sta. Maria PS"
+  },
+  {
+    "district": "Sogod II",
+    "school": "Benit PS"
+  },
+  {
+    "district": "Sogod II",
+    "school": "Buac ES"
+  },
+  {
+    "district": "Sogod II",
+    "school": "Concepcion ES"
+  },
+  {
+    "district": "Sogod II",
+    "school": "Consolacion ES"
+  },
+  {
+    "district": "Sogod II",
+    "school": "Consolacion NHS"
+  },
+  {
+    "district": "Sogod II",
+    "school": "Dagsa MGES"
+  },
+  {
+    "district": "Sogod II",
+    "school": "Hipantag MGES"
+  },
+  {
+    "district": "Sogod II",
+    "school": "Hipantag PS"
+  },
+  {
+    "district": "Sogod II",
+    "school": "Kahupian IS"
+  },
+  {
+    "district": "Sogod II",
+    "school": "Kanangkaan ES"
+  },
+  {
+    "district": "Sogod II",
+    "school": "Mac ES"
+  },
+  {
+    "district": "Sogod II",
+    "school": "Magatas ES"
+  },
+  {
+    "district": "Sogod II",
+    "school": "Olisihan ES"
+  },
+  {
+    "district": "Sogod II",
+    "school": "Pancho Villa ES"
+  },
+  {
+    "district": "Sogod II",
+    "school": "Pandan-San Miguel ES"
+  },
+  {
+    "district": "Sogod II",
+    "school": "San Francisco Mabuhay PS"
+  },
+  {
+    "district": "Sogod II",
+    "school": "San Isidro ES"
+  },
+  {
+    "district": "Sogod II",
+    "school": "San Isidro NHS"
+  },
+  {
+    "district": "Sogod II",
+    "school": "San Juan ES"
+  },
+  {
+    "district": "Sogod II",
+    "school": "Suba ES"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "Anahawan ES"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "Cabascan ES"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "Camansi ES"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "Cambite ES"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "Canlupao ES"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "Carnaga ES"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "Cawayan ES"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "DAFENHS"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "Hinagtican ES"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "Hinapo ES"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "Hugpa ES"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "Maanyag ES"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "Mapgap ES"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "Maslog ES"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "Rizal ES"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "Rizal NHS"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "San Antonio ES"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "San Isidro ES"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "San Isidro NHS"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "Tinago ES"
+  },
+  {
+    "district": "Tomas Oppus",
+    "school": "Tomas Oppus CS"
+  }
+]

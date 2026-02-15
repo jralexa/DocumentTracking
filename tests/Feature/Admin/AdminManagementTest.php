@@ -2,7 +2,10 @@
 
 use App\Models\Department;
 use App\Models\User;
+use App\Notifications\AdminUserCreatedNotification;
 use App\UserRole;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 
 test('admin can access administration pages', function () {
     $department = Department::factory()->create();
@@ -29,6 +32,8 @@ test('non admin cannot access administration pages', function () {
 });
 
 test('admin can create user with role and department', function () {
+    Notification::fake();
+
     $adminDepartment = Department::factory()->create();
     $targetDepartment = Department::factory()->create();
 
@@ -42,8 +47,6 @@ test('admin can create user with role and department', function () {
         'email' => 'queue.tester@example.com',
         'role' => UserRole::Regular->value,
         'department_id' => $targetDepartment->id,
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
     ];
 
     $response = $this->actingAs($admin)->post(route('admin.users.store'), $payload);
@@ -55,4 +58,38 @@ test('admin can create user with role and department', function () {
     expect($createdUser)->not->toBeNull();
     expect($createdUser?->role)->toBe(UserRole::Regular);
     expect($createdUser?->department_id)->toBe($targetDepartment->id);
+    expect($createdUser?->must_change_password)->toBeTrue();
+    Notification::assertSentTo($createdUser, AdminUserCreatedNotification::class);
+});
+
+test('admin can reset user password and email a new temporary password', function () {
+    Notification::fake();
+
+    $department = Department::factory()->create();
+
+    $admin = User::factory()->create([
+        'role' => UserRole::Admin,
+        'department_id' => $department->id,
+    ]);
+
+    $managedUser = User::factory()->create([
+        'role' => UserRole::Regular,
+        'department_id' => $department->id,
+        'must_change_password' => false,
+    ]);
+
+    $oldPasswordHash = $managedUser->password;
+
+    $response = $this->actingAs($admin)->post(route('admin.users.reset-password', $managedUser));
+
+    $response->assertRedirect(route('admin.users.index'));
+    $response->assertSessionHas('status');
+
+    $managedUser->refresh();
+
+    expect($managedUser->must_change_password)->toBeTrue();
+    expect(Hash::check('password', $managedUser->password))->toBeFalse();
+    expect($managedUser->password)->not->toBe($oldPasswordHash);
+
+    Notification::assertSentTo($managedUser, AdminUserCreatedNotification::class);
 });

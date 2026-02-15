@@ -7,6 +7,14 @@ use App\Models\User;
 class DocumentAccessPolicy
 {
     /**
+     * Determine whether the user can receive and record documents.
+     */
+    public function intake(User $user): bool
+    {
+        return $user->canIntakeDocuments();
+    }
+
+    /**
      * Determine whether the user can view document lists.
      */
     public function view(User $user): bool

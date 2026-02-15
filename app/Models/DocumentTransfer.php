@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
+use App\DocumentVersionType;
 use App\TransferStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Model;
 
 class DocumentTransfer extends Model
 {
@@ -26,6 +27,10 @@ class DocumentTransfer extends Model
         'accepted_by_user_id',
         'status',
         'remarks',
+        'forward_version_type',
+        'copy_kept',
+        'copy_storage_location',
+        'copy_purpose',
         'forwarded_at',
         'accepted_at',
         'recalled_at',
@@ -41,6 +46,8 @@ class DocumentTransfer extends Model
     {
         return [
             'status' => TransferStatus::class,
+            'forward_version_type' => DocumentVersionType::class,
+            'copy_kept' => 'boolean',
             'forwarded_at' => 'datetime',
             'accepted_at' => 'datetime',
             'recalled_at' => 'datetime',
@@ -101,5 +108,13 @@ class DocumentTransfer extends Model
     public function remarksThread(): HasMany
     {
         return $this->hasMany(DocumentRemark::class, 'document_transfer_id');
+    }
+
+    /**
+     * Get copy records associated with this transfer.
+     */
+    public function copies(): HasMany
+    {
+        return $this->hasMany(DocumentCopy::class, 'document_transfer_id');
     }
 }

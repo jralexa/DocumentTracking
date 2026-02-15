@@ -20,6 +20,30 @@ test('users can authenticate using the login screen', function () {
     $response->assertRedirect(route('dashboard', absolute: false));
 });
 
+test('users with temporary password are redirected to profile to change password', function () {
+    $user = User::factory()->create([
+        'must_change_password' => true,
+    ]);
+
+    $response = $this->post('/login', [
+        'email' => $user->email,
+        'password' => 'password',
+    ]);
+
+    $this->assertAuthenticated();
+    $response->assertRedirect(route('profile.edit'));
+});
+
+test('users with temporary password are blocked from dashboard until password is changed', function () {
+    $user = User::factory()->create([
+        'must_change_password' => true,
+    ]);
+
+    $response = $this->actingAs($user)->get(route('dashboard'));
+
+    $response->assertRedirect(route('profile.edit'));
+});
+
 test('users can not authenticate with invalid password', function () {
     $user = User::factory()->create();
 

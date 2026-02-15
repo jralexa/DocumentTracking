@@ -15,12 +15,6 @@
                     </a>
                 </div>
 
-                @if (session('status'))
-                    <div class="mb-4 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
-                        {{ session('status') }}
-                    </div>
-                @endif
-
                 <div class="overflow-x-auto rounded-md border border-gray-200">
                     <table class="min-w-full divide-y divide-gray-200 text-sm">
                         <thead class="bg-gray-50">
@@ -50,7 +44,14 @@
                                         </span>
                                     </td>
                                     <td class="px-4 py-3 text-right">
-                                        <a href="{{ route('admin.departments.edit', $department) }}" class="text-indigo-600 hover:text-indigo-700">Edit</a>
+                                        <div class="inline-flex items-center gap-3">
+                                            <a href="{{ route('admin.departments.edit', $department) }}" class="text-indigo-600 hover:text-indigo-700">Edit</a>
+                                            <form method="POST" action="{{ route('admin.departments.destroy', $department) }}" onsubmit="return confirm('Delete this department?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="text-red-600 hover:text-red-700">Delete</button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             @empty

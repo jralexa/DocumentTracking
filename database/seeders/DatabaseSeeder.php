@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             DepartmentSeeder::class,
+            DistrictSchoolSeeder::class,
         ]);
 
         $recordsDepartment = Department::query()->where('code', 'RECORDS')->first();

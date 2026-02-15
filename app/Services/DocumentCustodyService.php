@@ -17,9 +17,7 @@ class DocumentCustodyService
     /**
      * Create a new service instance.
      */
-    public function __construct(protected DocumentAuditService $auditService)
-    {
-    }
+    public function __construct(protected DocumentAuditService $auditService) {}
 
     /**
      * Assign current original custody for a document.
@@ -34,7 +32,7 @@ class DocumentCustodyService
         ?string $notes = null
     ): DocumentCustody {
         if ($custodian !== null && $department !== null && $custodian->department_id !== $department->id) {
-            throw new InvalidDocumentCustodyActionException('Custodian must belong to the selected department.');
+            $this->throwInvalidCustodyAction('Custodian must belong to the selected department.');
         }
 
         return DB::transaction(function () use ($document, $department, $custodian, $physicalLocation, $storageReference, $purpose, $notes): DocumentCustody {
@@ -143,15 +141,15 @@ class DocumentCustodyService
     public function markOriginalReturned(Document $document, string $returnedTo, ?Carbon $returnedAt = null): void
     {
         if (! $document->is_returnable) {
-            throw new InvalidDocumentCustodyActionException('This document is not marked as returnable.');
+            $this->throwInvalidCustodyAction('This document is not marked as returnable.');
         }
 
         if (trim($returnedTo) === '') {
-            throw new InvalidDocumentCustodyActionException('Returned-to value is required.');
+            $this->throwInvalidCustodyAction('Returned-to value is required.');
         }
 
         if ($document->returned_at !== null) {
-            throw new InvalidDocumentCustodyActionException('This document has already been marked as returned.');
+            $this->throwInvalidCustodyAction('This document has already been marked as returned.');
         }
 
         DB::transaction(function () use ($document, $returnedTo, $returnedAt): void {
@@ -185,5 +183,15 @@ class DocumentCustodyService
                 ]
             );
         });
+    }
+
+    /**
+     * Throw a custody domain exception.
+     *
+     * @throws InvalidDocumentCustodyActionException
+     */
+    protected function throwInvalidCustodyAction(string $message): never
+    {
+        throw new InvalidDocumentCustodyActionException($message);
     }
 }

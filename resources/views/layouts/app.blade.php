@@ -15,20 +15,25 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased">
-        <div x-data="{ sidebarOpen: false }" class="min-h-screen bg-gray-100 lg:pl-72">
+        <x-flash-toast :message="session('status')" type="success" />
+        <x-flash-toast :message="session('intake_notice')" type="info" />
+
+        <div
+            x-data="{ sidebarOpen: false, sidebarCollapsed: false }"
+            :class="sidebarCollapsed ? 'lg:pl-0' : 'lg:pl-72'"
+            class="min-h-screen bg-slate-100 transition-all duration-200"
+        >
             @include('layouts.navigation')
 
-            <!-- Page Heading -->
             @isset($header)
-                <header class="bg-white shadow">
-                    <div class="py-6 px-4 sm:px-6 lg:px-8">
+                <header class="pt-6">
+                    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                         {{ $header }}
                     </div>
                 </header>
             @endisset
 
-            <!-- Page Content -->
-            <main class="px-4 py-6 sm:px-6 lg:px-8">
+            <main class="pb-8">
                 {{ $slot }}
             </main>
         </div>

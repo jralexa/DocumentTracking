@@ -15,12 +15,6 @@
                     </a>
                 </div>
 
-                @if (session('status'))
-                    <div class="mb-4 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
-                        {{ session('status') }}
-                    </div>
-                @endif
-
                 <div class="overflow-x-auto rounded-md border border-gray-200">
                     <table class="min-w-full divide-y divide-gray-200 text-sm">
                         <thead class="bg-gray-50">
@@ -40,7 +34,22 @@
                                     <td class="px-4 py-3 text-gray-700">{{ ucfirst($user->role->value) }}</td>
                                     <td class="px-4 py-3 text-gray-700">{{ $user->department?->name ?? '-' }}</td>
                                     <td class="px-4 py-3 text-right">
-                                        <a href="{{ route('admin.users.edit', $user) }}" class="text-indigo-600 hover:text-indigo-700">Edit</a>
+                                        <div class="inline-flex items-center gap-3">
+                                            @if (auth()->id() !== $user->id)
+                                                <form method="POST" action="{{ route('admin.users.reset-password', $user) }}" onsubmit="return confirm('Reset password and send a new temporary password to this user?');">
+                                                    @csrf
+                                                    <button type="submit" class="text-amber-700 hover:text-amber-800">Reset Password</button>
+                                                </form>
+                                            @endif
+                                            <a href="{{ route('admin.users.edit', $user) }}" class="text-indigo-600 hover:text-indigo-700">Edit</a>
+                                            @if (auth()->id() !== $user->id)
+                                                <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('Delete this user?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="text-red-600 hover:text-red-700">Delete</button>
+                                                </form>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @empty

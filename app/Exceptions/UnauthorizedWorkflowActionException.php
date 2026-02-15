@@ -2,9 +2,4 @@
 
 namespace App\Exceptions;
 
-use RuntimeException;
-
-class UnauthorizedWorkflowActionException extends RuntimeException
-{
-}
-
+class UnauthorizedWorkflowActionException extends DomainException {}

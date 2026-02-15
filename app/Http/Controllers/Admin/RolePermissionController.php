@@ -13,14 +13,36 @@ class RolePermissionController extends Controller
      */
     public function index(): View
     {
-        $capabilities = [
+        return view('admin.roles-permissions.index', [
+            'roles' => UserRole::cases(),
+            'capabilities' => $this->capabilities(),
+            'roleCapabilities' => $this->roleCapabilities(),
+        ]);
+    }
+
+    /**
+     * Get capability labels and ability keys.
+     *
+     * @return array<string, string>
+     */
+    protected function capabilities(): array
+    {
+        return [
             'View Document Lists' => 'documents.view',
             'Process Workflow' => 'documents.process',
             'Manage Documents' => 'documents.manage',
             'Export Reports' => 'documents.export',
         ];
+    }
 
-        $roleCapabilities = [
+    /**
+     * Get role to capabilities matrix.
+     *
+     * @return array<string, array<int, string>>
+     */
+    protected function roleCapabilities(): array
+    {
+        return [
             UserRole::Admin->value => [
                 'documents.view',
                 'documents.process',
@@ -39,11 +61,5 @@ class RolePermissionController extends Controller
             ],
             UserRole::Guest->value => [],
         ];
-
-        return view('admin.roles-permissions.index', [
-            'roles' => UserRole::cases(),
-            'capabilities' => $capabilities,
-            'roleCapabilities' => $roleCapabilities,
-        ]);
     }
 }

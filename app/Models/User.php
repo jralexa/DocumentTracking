@@ -24,6 +24,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'must_change_password',
         'role',
         'department_id',
     ];
@@ -39,6 +40,39 @@ class User extends Authenticatable
     ];
 
     /**
+     * Roles with queue/document processing capability.
+     *
+     * @var array<int, UserRole>
+     */
+    protected const PROCESS_ROLES = [
+        UserRole::Admin,
+        UserRole::Manager,
+        UserRole::Regular,
+    ];
+
+    /**
+     * Roles with management/export capability.
+     *
+     * @var array<int, UserRole>
+     */
+    protected const MANAGEMENT_ROLES = [
+        UserRole::Admin,
+        UserRole::Manager,
+    ];
+
+    /**
+     * Roles allowed to intake documents.
+     *
+     * @var array<int, UserRole>
+     */
+    protected const INTAKE_ROLES = [
+        UserRole::Admin,
+        UserRole::Manager,
+        UserRole::Regular,
+        UserRole::Guest,
+    ];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -48,6 +82,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'must_change_password' => 'boolean',
             'role' => UserRole::class,
         ];
     }
@@ -162,11 +197,7 @@ class User extends Authenticatable
      */
     public function canViewDocuments(): bool
     {
-        return $this->hasAnyRole([
-            UserRole::Admin,
-            UserRole::Manager,
-            UserRole::Regular,
-        ]);
+        return $this->hasAnyRole(self::PROCESS_ROLES);
     }
 
     /**
@@ -174,11 +205,15 @@ class User extends Authenticatable
      */
     public function canProcessDocuments(): bool
     {
-        return $this->hasAnyRole([
-            UserRole::Admin,
-            UserRole::Manager,
-            UserRole::Regular,
-        ]);
+        return $this->hasAnyRole(self::PROCESS_ROLES);
+    }
+
+    /**
+     * Determine if the user can intake (receive and record) documents.
+     */
+    public function canIntakeDocuments(): bool
+    {
+        return $this->hasAnyRole(self::INTAKE_ROLES);
     }
 
     /**
@@ -186,10 +221,7 @@ class User extends Authenticatable
      */
     public function canManageDocuments(): bool
     {
-        return $this->hasAnyRole([
-            UserRole::Admin,
-            UserRole::Manager,
-        ]);
+        return $this->hasAnyRole(self::MANAGEMENT_ROLES);
     }
 
     /**
@@ -197,9 +229,6 @@ class User extends Authenticatable
      */
     public function canExportReports(): bool
     {
-        return $this->hasAnyRole([
-            UserRole::Admin,
-            UserRole::Manager,
-        ]);
+        return $this->hasAnyRole(self::MANAGEMENT_ROLES);
     }
 }

@@ -28,6 +28,12 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        if ($request->user()?->must_change_password) {
+            return redirect()
+                ->route('profile.edit')
+                ->with('status', 'Please change your temporary password to continue.');
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

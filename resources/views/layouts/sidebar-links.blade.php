@@ -4,6 +4,7 @@
 
     $user = Auth::user();
 
+    $canIntakeDocuments = $user->canIntakeDocuments();
     $canProcessDocuments = $user->canProcessDocuments();
     $canViewDocuments = $user->canViewDocuments();
     $canExportReports = $user->canExportReports();
@@ -14,8 +15,17 @@
     $dashboardRoute = Route::has('dashboard') ? route('dashboard') : null;
     $createDocumentRoute = Route::has('documents.create') ? route('documents.create') : null;
     $queueRoute = Route::has('documents.queues.index') ? route('documents.queues.index') : null;
+    $trackDocumentRoute = Route::has('documents.track') ? route('documents.track') : null;
+    $documentListRoute = Route::has('documents.index') ? route('documents.index') : null;
+    $custodyOriginalsRoute = Route::has('custody.originals.index') ? route('custody.originals.index') : null;
+    $custodyCopiesRoute = Route::has('custody.copies.index') ? route('custody.copies.index') : null;
+    $custodyReturnablesRoute = Route::has('custody.returnables.index') ? route('custody.returnables.index') : null;
     $monthlyReportRoute = Route::has('reports.departments.monthly') ? route('reports.departments.monthly') : null;
-    $adminDepartmentsRoute = Route::has('admin.departments.index') ? route('admin.departments.index') : null;
+    $agingReportRoute = Route::has('reports.aging-overdue') ? route('reports.aging-overdue') : null;
+    $performanceReportRoute = Route::has('reports.performance') ? route('reports.performance') : null;
+    $custodyReportRoute = Route::has('reports.custody') ? route('reports.custody') : null;
+    $casesIndexRoute = Route::has('cases.index') ? route('cases.index') : null;
+    $adminOrganizationRoute = Route::has('admin.organization.index') ? route('admin.organization.index') : null;
     $adminUsersRoute = Route::has('admin.users.index') ? route('admin.users.index') : null;
     $adminRolePermissionsRoute = Route::has('admin.roles-permissions.index') ? route('admin.roles-permissions.index') : null;
 
@@ -32,18 +42,21 @@
 
     $documentItems = [];
 
-    if ($canProcessDocuments) {
-        $documentItems[] = ['label' => 'Register Document', 'href' => $createDocumentRoute, 'active' => request()->routeIs('documents.create')];
-        $documentItems[] = ['label' => 'Process Documents', 'href' => $queueRoute, 'active' => request()->routeIs('documents.queues.*')];
+    if ($canIntakeDocuments) {
+        $documentItems[] = ['label' => 'Receive and Record', 'href' => $createDocumentRoute, 'active' => request()->routeIs('documents.create')];
     }
 
-    $documentItems[] = ['label' => 'Track Document', 'href' => null, 'active' => false];
+    if ($canProcessDocuments) {
+        $documentItems[] = ['label' => 'Route / Process', 'href' => $queueRoute, 'active' => request()->routeIs('documents.queues.*')];
+    }
+
+    $documentItems[] = ['label' => 'Track Document', 'href' => $trackDocumentRoute, 'active' => request()->routeIs('documents.track')];
 
     if ($canViewDocuments) {
         $documentItems[] = [
             'label' => $isAdminOrManager ? 'Document List / Search' : 'Document List / Search (View Only)',
-            'href' => null,
-            'active' => false,
+            'href' => $documentListRoute,
+            'active' => request()->routeIs('documents.index'),
         ];
     }
 
@@ -58,8 +71,7 @@
         $sections[] = [
             'title' => 'Cases',
             'items' => [
-                ['label' => 'Create Case', 'href' => null, 'active' => false],
-                ['label' => 'Case List', 'href' => null, 'active' => false],
+                ['label' => 'Case List', 'href' => $casesIndexRoute, 'active' => request()->routeIs('cases.*')],
             ],
         ];
     }
@@ -68,9 +80,9 @@
         $sections[] = [
             'title' => 'Custody & Copies',
             'items' => [
-                ['label' => 'Original Custody', 'href' => null, 'active' => false],
-                ['label' => 'Copy Inventory', 'href' => null, 'active' => false],
-                ['label' => 'Returnable Documents', 'href' => $isAdminOrManager ? null : null, 'active' => false, 'hidden' => ! $isAdminOrManager],
+                ['label' => 'Original Custody', 'href' => $custodyOriginalsRoute, 'active' => request()->routeIs('custody.originals.*')],
+                ['label' => 'Copy Inventory', 'href' => $custodyCopiesRoute, 'active' => request()->routeIs('custody.copies.*')],
+                ['label' => 'Returnable Documents', 'href' => $custodyReturnablesRoute, 'active' => request()->routeIs('custody.returnables.*'), 'hidden' => ! $isAdminOrManager],
             ],
         ];
     }
@@ -80,9 +92,9 @@
             'title' => 'Reports',
             'items' => [
                 ['label' => 'Monthly Department Report', 'href' => $monthlyReportRoute, 'active' => request()->routeIs('reports.departments.monthly')],
-                ['label' => 'Aging / Overdue Report', 'href' => null, 'active' => false],
-                ['label' => 'Performance Report', 'href' => null, 'active' => false],
-                ['label' => 'Custody Report', 'href' => null, 'active' => false],
+                ['label' => 'Aging / Overdue Report', 'href' => $agingReportRoute, 'active' => request()->routeIs('reports.aging-overdue')],
+                ['label' => 'Performance Report', 'href' => $performanceReportRoute, 'active' => request()->routeIs('reports.performance')],
+                ['label' => 'Custody Report', 'href' => $custodyReportRoute, 'active' => request()->routeIs('reports.custody')],
             ],
         ];
     }
@@ -91,7 +103,7 @@
         $sections[] = [
             'title' => 'Administration',
             'items' => [
-                ['label' => 'Departments', 'href' => $adminDepartmentsRoute, 'active' => request()->routeIs('admin.departments.*')],
+                ['label' => 'Organization', 'href' => $adminOrganizationRoute, 'active' => request()->routeIs('admin.organization.*') || request()->routeIs('admin.departments.*') || request()->routeIs('admin.districts.*') || request()->routeIs('admin.schools.*')],
                 ['label' => 'Users', 'href' => $adminUsersRoute, 'active' => request()->routeIs('admin.users.*')],
                 ['label' => 'Roles / Permissions', 'href' => $adminRolePermissionsRoute, 'active' => request()->routeIs('admin.roles-permissions.*')],
                 ['label' => 'System Logs', 'href' => null, 'active' => false],
@@ -103,32 +115,91 @@
 
 <div class="space-y-5">
     @foreach ($sections as $section)
-        <div>
-            <p class="px-3 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ $section['title'] }}</p>
-            <div class="mt-2 space-y-1">
-                @foreach ($section['items'] as $item)
-                    @continue(($item['hidden'] ?? false) === true)
+        @php
+            $visibleItems = array_values(array_filter($section['items'], static fn (array $item): bool => ($item['hidden'] ?? false) !== true));
+            $sectionHasActive = collect($visibleItems)->contains(static fn (array $item): bool => (bool) ($item['active'] ?? false));
+            $isSingleItemSection = count($visibleItems) === 1;
+        @endphp
 
-                    @if ($item['href'])
+        @if ($isSingleItemSection)
+            @php $singleItem = $visibleItems[0]; @endphp
+            <div class="rounded-lg border border-transparent">
+                @if (strtolower($section['title']) !== 'dashboard')
+                    <p class="px-3 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ $section['title'] }}</p>
+                @endif
+                <div class="mt-2 space-y-1">
+                    @if ($singleItem['href'])
                         <a
-                            href="{{ $item['href'] }}"
+                            href="{{ $singleItem['href'] }}"
                             @click="sidebarOpen = false"
                             @class([
                                 'block rounded-md px-3 py-2 text-sm font-medium transition',
-                                'bg-slate-900 text-white' => $item['active'],
-                                'text-slate-700 hover:bg-slate-100' => ! $item['active'],
+                                'bg-slate-900 text-white' => $singleItem['active'],
+                                'text-slate-700 hover:bg-slate-100' => ! $singleItem['active'],
                             ])
                         >
-                            {{ $item['label'] }}
+                            {{ $singleItem['label'] }}
                         </a>
                     @else
                         <span class="flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-slate-400">
-                            {{ $item['label'] }}
+                            {{ $singleItem['label'] }}
                             <span class="text-[10px] uppercase tracking-wide">Soon</span>
                         </span>
                     @endif
-                @endforeach
+                </div>
             </div>
-        </div>
+        @else
+            <div x-data="{ open: @js($sectionHasActive) }" class="rounded-lg border border-transparent">
+                <button
+                    type="button"
+                    @click="open = !open"
+                    class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                    :aria-expanded="open"
+                >
+                    <span>{{ $section['title'] }}</span>
+                    <svg
+                        class="h-4 w-4 text-slate-400 transition-transform"
+                        :class="open ? 'rotate-180' : 'rotate-0'"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                    >
+                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+
+                <div
+                    class="mt-2 space-y-1"
+                    x-show="open"
+                    x-transition:enter="transition ease-out duration-150"
+                    x-transition:enter-start="opacity-0 -translate-y-1"
+                    x-transition:enter-end="opacity-100 translate-y-0"
+                    x-transition:leave="transition ease-in duration-100"
+                    x-transition:leave-start="opacity-100 translate-y-0"
+                    x-transition:leave-end="opacity-0 -translate-y-1"
+                >
+                    @foreach ($visibleItems as $item)
+                        @if ($item['href'])
+                            <a
+                                href="{{ $item['href'] }}"
+                                @click="sidebarOpen = false"
+                                @class([
+                                    'block rounded-md px-3 py-2 text-sm font-medium transition',
+                                    'bg-slate-900 text-white' => $item['active'],
+                                    'text-slate-700 hover:bg-slate-100' => ! $item['active'],
+                                ])
+                            >
+                                {{ $item['label'] }}
+                            </a>
+                        @else
+                            <span class="flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-slate-400">
+                                {{ $item['label'] }}
+                                <span class="text-[10px] uppercase tracking-wide">Soon</span>
+                            </span>
+                        @endif
+                    @endforeach
+                </div>
+            </div>
+        @endif
     @endforeach
 </div>

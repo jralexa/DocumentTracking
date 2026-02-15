@@ -1,9 +1,12 @@
 <?php
 
+use App\DocumentVersionType;
 use App\DocumentWorkflowStatus;
 use App\Models\Department;
 use App\Models\Document;
 use App\Models\DocumentCase;
+use App\Models\DocumentCopy;
+use App\Models\DocumentCustody;
 use App\Models\DocumentTransfer;
 use App\Models\User;
 use App\TransferStatus;
@@ -185,6 +188,33 @@ test('cannot recall transfer not forwarded by actor', function () {
     $response->assertForbidden();
 });
 
+test('cannot recall transfer when user is no longer in source department', function () {
+    $fromDepartment = Department::factory()->create();
+    $toDepartment = Department::factory()->create();
+    $newDepartment = Department::factory()->create();
+    $forwarder = User::factory()->create(['department_id' => $fromDepartment->id]);
+    $document = Document::factory()->create([
+        'current_department_id' => $toDepartment->id,
+        'current_user_id' => null,
+        'status' => DocumentWorkflowStatus::Outgoing,
+    ]);
+
+    $transfer = DocumentTransfer::factory()->create([
+        'document_id' => $document->id,
+        'from_department_id' => $fromDepartment->id,
+        'to_department_id' => $toDepartment->id,
+        'forwarded_by_user_id' => $forwarder->id,
+        'status' => TransferStatus::Pending,
+        'accepted_at' => null,
+    ]);
+
+    $forwarder->update(['department_id' => $newDepartment->id]);
+
+    $response = $this->actingAs($forwarder)->post(route('documents.recall', $transfer));
+
+    $response->assertForbidden();
+});
+
 test('queue index shows correct incoming on queue and outgoing segmentation', function () {
     $departmentA = Department::factory()->create();
     $departmentB = Department::factory()->create();
@@ -323,4 +353,73 @@ test('document status and assignee fields stay synchronized after transitions', 
     expect($document->status)->toBe(DocumentWorkflowStatus::OnQueue);
     expect($document->current_department_id)->toBe($toDepartment->id);
     expect($document->current_user_id)->toBe($receiver->id);
+});
+
+test('accept updates received timestamp for incoming department receipt', function () {
+    $fromDepartment = Department::factory()->create();
+    $toDepartment = Department::factory()->create();
+    $forwarder = User::factory()->create(['department_id' => $fromDepartment->id]);
+    $receiver = User::factory()->create(['department_id' => $toDepartment->id]);
+
+    $document = Document::factory()->create([
+        'current_department_id' => $toDepartment->id,
+        'current_user_id' => null,
+        'status' => DocumentWorkflowStatus::Outgoing,
+        'received_at' => now()->subDays(2),
+    ]);
+
+    DocumentTransfer::factory()->create([
+        'document_id' => $document->id,
+        'from_department_id' => $fromDepartment->id,
+        'to_department_id' => $toDepartment->id,
+        'forwarded_by_user_id' => $forwarder->id,
+        'status' => TransferStatus::Pending,
+        'accepted_at' => null,
+    ]);
+
+    $this->actingAs($receiver)->post(route('documents.accept', $document))->assertRedirect();
+
+    $document->refresh();
+    expect($document->received_at)->not->toBeNull();
+    expect($document->received_at?->gt(now()->subMinutes(1)))->toBeTrue();
+});
+
+test('forward with original and kept photocopy creates transfer custody and copy entries', function () {
+    $accounting = Department::factory()->create(['name' => 'Accounting']);
+    $budget = Department::factory()->create(['name' => 'Budget', 'is_active' => true]);
+    $staff = User::factory()->create(['department_id' => $accounting->id]);
+
+    $document = Document::factory()->create([
+        'current_department_id' => $accounting->id,
+        'current_user_id' => $staff->id,
+        'status' => DocumentWorkflowStatus::OnQueue,
+    ]);
+
+    $response = $this->actingAs($staff)->post(route('documents.forward', $document), [
+        'to_department_id' => $budget->id,
+        'remarks' => 'Verified supporting documents. Forward to Budget for fund allocation.',
+        'forward_version_type' => DocumentVersionType::Original->value,
+        'copy_kept' => '1',
+        'copy_storage_location' => 'Accounting Cabinet B-2',
+        'copy_purpose' => 'For accounting audit trail',
+    ]);
+
+    $response->assertRedirect();
+
+    $document->refresh();
+    $transfer = DocumentTransfer::query()->where('document_id', $document->id)->latest('id')->firstOrFail();
+
+    expect($transfer->status)->toBe(TransferStatus::Pending);
+    expect($transfer->forward_version_type)->toBe(DocumentVersionType::Original);
+    expect($transfer->copy_kept)->toBeTrue();
+    expect($transfer->copy_storage_location)->toBe('Accounting Cabinet B-2');
+
+    expect($document->status)->toBe(DocumentWorkflowStatus::Outgoing);
+    expect($document->current_department_id)->toBe($budget->id);
+    expect($document->current_user_id)->toBeNull();
+
+    expect(DocumentCopy::query()->where('document_id', $document->id)->count())->toBe(1);
+    expect(DocumentCopy::query()->where('document_id', $document->id)->first()?->storage_location)->toBe('Accounting Cabinet B-2');
+
+    expect(DocumentCustody::query()->where('document_id', $document->id)->count())->toBeGreaterThan(0);
 });
