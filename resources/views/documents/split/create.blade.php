@@ -13,6 +13,16 @@
                 </div>
             @endif
 
+            @php
+                $defaultMode = old('children.0.routing_mode', 'branch');
+                $oldDestinationIds = collect(old('children.0.to_department_ids', []))
+                    ->map(static fn ($id): string => (string) $id)
+                    ->values()
+                    ->all();
+                $oldPrimaryDestinationId = (string) (old('children.0.to_department_ids.0') ?? ($oldDestinationIds[0] ?? ''));
+                $canUseAdvancedRouting = auth()->user()?->canManageDocuments() ?? false;
+            @endphp
+
             <section class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
                 <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Parent Document</h3>
                 <div class="mt-2 grid grid-cols-1 gap-3 text-sm text-gray-700 md:grid-cols-3">
@@ -20,308 +30,530 @@
                     <p><span class="font-semibold text-gray-900">Subject:</span> {{ $parentDocument->subject }}</p>
                     <p><span class="font-semibold text-gray-900">Current Department:</span> {{ $parentDocument->currentDepartment?->name ?? '-' }}</p>
                 </div>
+                <p class="mt-3 text-xs text-gray-500">
+                    Auto suffix starts from: {{ $nextSuffix }}.
+                </p>
             </section>
 
-            <section class="rounded-lg border border-gray-200 bg-white shadow-sm">
-                <form
-                    method="POST"
-                    action="{{ route('documents.split.store', $parentDocument) }}"
-                    class="space-y-4 p-4"
-                    x-data="{
-                        children: [
-                            { routing_mode: 'branch', subject: @js($parentDocument->subject), document_type: @js($parentDocument->document_type), same_owner_as_parent: true, owner_type: @js($parentDocument->owner_type), owner_name: @js($parentDocument->owner_name), forward_version_type: 'original', to_department_ids: [], copy_kept: false, copy_storage_location: '', copy_purpose: '', original_storage_location: '', is_returnable: false, return_deadline: '', remarks: '' }
-                        ],
-                        addChild() {
-                            if (this.children.length >= 10) {
-                                return;
-                            }
-                            this.children.push({
-                                routing_mode: 'branch',
-                                subject: @js($parentDocument->subject),
-                                document_type: @js($parentDocument->document_type),
-                                same_owner_as_parent: true,
-                                owner_type: @js($parentDocument->owner_type),
-                                owner_name: @js($parentDocument->owner_name),
-                                forward_version_type: 'original',
-                                to_department_ids: [],
-                                copy_kept: false,
-                                copy_storage_location: '',
-                                copy_purpose: '',
-                                original_storage_location: '',
-                                is_returnable: false,
-                                return_deadline: '',
-                                remarks: ''
-                            });
-                        },
-                        removeChild(index) {
-                            if (this.children.length === 1) {
-                                return;
-                            }
-                            this.children.splice(index, 1);
-                        }
-                    }"
-                >
-                    @csrf
-
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-700">Child Documents</h3>
-                        <p class="text-xs text-gray-500">Auto suffix starts from: {{ $nextSuffix }}</p>
+            <section
+                x-data="{ mode: @js($defaultMode === 'child' ? 'child' : 'branch') }"
+                class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
+            >
+                <header class="border-b border-gray-200 px-4 py-3">
+                    <div class="flex flex-wrap items-center gap-2">
                         <button
                             type="button"
-                            @click="addChild"
-                            class="inline-flex items-center rounded-md border border-gray-300 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50"
+                            @click="mode = 'branch'"
+                            class="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition"
+                            :class="mode === 'branch' ? 'bg-indigo-600 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50'"
                         >
-                            Add Child
+                            Route Existing
+                        </button>
+                        <button
+                            type="button"
+                            @click="mode = 'child'"
+                            class="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition"
+                            :class="mode === 'child' ? 'bg-indigo-600 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50'"
+                        >
+                            Create Child
                         </button>
                     </div>
+                    @if ($canUseAdvancedRouting)
+                        <p class="mt-2 text-xs text-gray-500">
+                            Use <span class="font-semibold text-gray-700">Route Existing</span> for the same document sent to another office.
+                            Use <span class="font-semibold text-gray-700">Create Child</span> for a separate related document record.
+                        </p>
+                    @endif
+                </header>
 
-                    <template x-for="(child, index) in children" :key="index">
-                        <article class="rounded-lg border border-gray-200 p-3">
-                            <div class="mb-3 flex items-center justify-between">
-                                <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                                    Child Row <span x-text="index + 1"></span>
-                                </h4>
-                                <button
-                                    type="button"
-                                    @click="removeChild(index)"
-                                    class="text-xs font-semibold uppercase tracking-wide text-red-600"
-                                >
-                                    Remove
-                                </button>
-                            </div>
+                <div x-show="mode === 'branch'" x-cloak class="p-4">
+                    <form
+                        method="POST"
+                        action="{{ route('documents.split.store', $parentDocument) }}"
+                        x-data="{
+                            forwardVersion: @js($canUseAdvancedRouting ? old('children.0.forward_version_type', 'original') : 'original'),
+                            destinationIds: @js($oldDestinationIds),
+                            copyKept: @js($canUseAdvancedRouting && (bool) old('children.0.copy_kept')),
+                            returnable: @js((bool) old('children.0.is_returnable')),
+                        }"
+                        class="space-y-4"
+                    >
+                        @csrf
 
-                            <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
-                                <div class="rounded-md border border-gray-200 bg-gray-50 p-2 md:col-span-3">
-                                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-600">Split Mode</p>
-                                    <div class="mt-2 flex flex-wrap gap-4 text-sm text-gray-700">
-                                        <label class="inline-flex items-center gap-2">
-                                            <input
-                                                type="radio"
-                                                :name="'children[' + index + '][routing_mode]'"
-                                                value="branch"
-                                                x-model="child.routing_mode"
-                                                @change="if (child.routing_mode === 'branch') { child.subject = @js($parentDocument->subject); child.document_type = @js($parentDocument->document_type); child.same_owner_as_parent = true; child.owner_type = @js($parentDocument->owner_type); child.owner_name = @js($parentDocument->owner_name); }"
-                                                class="border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                            >
-                                            Branch same document
-                                        </label>
-                                        <label class="inline-flex items-center gap-2">
-                                            <input
-                                                type="radio"
-                                                :name="'children[' + index + '][routing_mode]'"
-                                                value="child"
-                                                x-model="child.routing_mode"
-                                                class="border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                            >
-                                            Create child document
-                                        </label>
-                                    </div>
-                                    <p class="mt-1 text-xs text-gray-500">Use branch mode when this is the same document routed to another office. Use child mode only when creating a separate related document record.</p>
-                                </div>
+                        <input type="hidden" name="children[0][routing_mode]" value="branch">
+                        <input type="hidden" name="children[0][subject]" value="{{ $parentDocument->subject }}">
+                        <input type="hidden" name="children[0][document_type]" value="{{ $parentDocument->document_type }}">
+                        <input type="hidden" name="children[0][same_owner_as_parent]" value="1">
+                        <input type="hidden" name="children[0][owner_type]" value="{{ $parentDocument->owner_type }}">
+                        <input type="hidden" name="children[0][owner_name]" value="{{ $parentDocument->owner_name }}">
+                        @if (! $canUseAdvancedRouting)
+                            <input type="hidden" name="children[0][forward_version_type]" value="original">
+                        @endif
 
-                                <div class="md:col-span-3">
-                                    <label class="block text-sm font-medium text-gray-700">Subject</label>
-                                    <input
-                                        type="text"
-                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                        :class="{ 'bg-gray-100 text-gray-600': child.routing_mode === 'branch' }"
-                                        x-model="child.subject"
-                                        x-bind:name="'children[' + index + '][subject]'"
-                                        :readonly="child.routing_mode === 'branch'"
-                                        required
-                                    >
-                                    <p class="mt-1 text-xs text-gray-500" x-show="child.routing_mode === 'branch'">Subject follows parent document in branch mode.</p>
-                                </div>
-
+                        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                            @if ($canUseAdvancedRouting)
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700">Document Type</label>
-                                    <select x-bind:name="'children[' + index + '][document_type]'" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" x-model="child.document_type" :disabled="child.routing_mode === 'branch'" required>
-                                        <option value="communication">Communication</option>
-                                        <option value="submission">Submission</option>
-                                        <option value="request">Request</option>
-                                        <option value="for_processing">For Processing</option>
-                                    </select>
-                                    <p class="mt-1 text-xs text-gray-500" x-show="child.routing_mode === 'branch'">Document type follows parent in branch mode.</p>
-                                </div>
-
-                                <div x-show="child.routing_mode === 'child'">
-                                    <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-700">
-                                        <input
-                                            :name="'children[' + index + '][same_owner_as_parent]'"
-                                            type="checkbox"
-                                            value="1"
-                                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                            x-model="child.same_owner_as_parent"
-                                        >
-                                        Same as parent owner
-                                    </label>
-                                </div>
-
-                                <div x-show="child.routing_mode === 'child'">
-                                    <label class="block text-sm font-medium text-gray-700">Owner Type</label>
+                                    <x-input-label for="branch_forward_version_type" :value="__('Forward Version')" />
                                     <select
-                                        x-bind:name="'children[' + index + '][owner_type]'"
+                                        id="branch_forward_version_type"
+                                        name="children[0][forward_version_type]"
+                                        x-model="forwardVersion"
+                                        @change="if (forwardVersion === 'original' && destinationIds.length > 1) { destinationIds = [destinationIds[0]]; } if (forwardVersion !== 'original') { copyKept = false; }"
                                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                        x-model="child.owner_type"
-                                        :disabled="child.same_owner_as_parent"
-                                        :required="!child.same_owner_as_parent"
-                                    >
-                                        <option value="district">District</option>
-                                        <option value="school">School</option>
-                                        <option value="personal">Personal</option>
-                                        <option value="others">Others</option>
-                                    </select>
-                                </div>
-
-                                <div x-show="child.routing_mode === 'child'">
-                                    <label class="block text-sm font-medium text-gray-700">Owner Name</label>
-                                    <input
-                                        type="text"
-                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                        x-model="child.owner_name"
-                                        x-bind:name="'children[' + index + '][owner_name]'"
-                                        :disabled="child.same_owner_as_parent"
-                                        :required="!child.same_owner_as_parent"
-                                    >
-                                </div>
-
-                                <div class="rounded-md border border-gray-200 bg-gray-50 p-2 md:col-span-2" x-show="child.routing_mode === 'branch'">
-                                    <p class="text-xs text-gray-600">Owner follows parent document in branch mode.</p>
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Forward Version</label>
-                                    <select
-                                        :name="'children[' + index + '][forward_version_type]'"
-                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                        x-model="child.forward_version_type"
-                                        @change="if (child.forward_version_type === 'original' && child.to_department_ids.length > 1) { child.to_department_ids = [child.to_department_ids[0]]; } if (child.forward_version_type !== 'original') { child.copy_kept = false; child.copy_storage_location = ''; child.copy_purpose = ''; }"
                                     >
                                         <option value="original">Original</option>
                                         <option value="certified_copy">Certified Copy</option>
                                         <option value="photocopy">Photocopy</option>
                                         <option value="scan">Digital Scan</option>
                                     </select>
+                                    <x-input-error :messages="$errors->get('children.0.forward_version_type')" class="mt-2" />
                                 </div>
-
-                                <div class="md:col-span-3">
-                                    <label class="block text-sm font-medium text-gray-700">Route To Departments</label>
-                                    <p class="mt-1 text-xs text-gray-500">
-                                        Original can be routed to one department only. Use certified copy / photocopy / scan for multi-department routing.
-                                    </p>
-                                    <div class="mt-1 grid grid-cols-1 gap-2 rounded-md border border-gray-200 bg-gray-50 p-2 md:grid-cols-2">
-                                        @foreach ($activeDepartments as $department)
-                                            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                                                <input
-                                                    type="checkbox"
-                                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                                    :name="'children[' + index + '][to_department_ids][]'"
-                                                    value="{{ $department->id }}"
-                                                    x-model="child.to_department_ids"
-                                                    :disabled="child.forward_version_type === 'original' && !child.to_department_ids.includes('{{ $department->id }}') && child.to_department_ids.length >= 1"
-                                                >
-                                                {{ $department->name }}
-                                            </label>
-                                        @endforeach
-                                    </div>
+                            @else
+                                <div class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                                    Basic mode: routing uses <span class="font-semibold text-gray-800">Original</span> document version.
                                 </div>
+                            @endif
 
-                                <div class="md:col-span-2">
-                                    <label class="block text-sm font-medium text-gray-700">Action Taken / Remarks (Optional)</label>
-                                    <textarea x-bind:name="'children[' + index + '][remarks]'" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" x-model="child.remarks"></textarea>
-                                </div>
+                            <div>
+                                <x-input-label for="branch_remarks" :value="__('Remarks (Optional)')" />
+                                <textarea
+                                    id="branch_remarks"
+                                    name="children[0][remarks]"
+                                    rows="2"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                >{{ old('children.0.remarks') }}</textarea>
+                                <x-input-error :messages="$errors->get('children.0.remarks')" class="mt-2" />
+                            </div>
+                        </div>
 
-                                <div class="rounded-md border border-gray-200 bg-gray-50 p-2 md:col-span-3" x-show="child.forward_version_type === 'original'">
-                                    <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-700">
-                                        <input
-                                            :name="'children[' + index + '][copy_kept]'"
-                                            type="checkbox"
-                                            value="1"
-                                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                            x-model="child.copy_kept"
-                                        >
-                                        Keep a photocopy in source department
-                                    </label>
-                                    <div class="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2" x-show="child.copy_kept">
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700">Copy Storage Location</label>
+                        <div>
+                            <x-input-label :value="$canUseAdvancedRouting ? __('Route To Departments') : __('Route To')" />
+                            @if ($canUseAdvancedRouting)
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Original version can route to one department only. Use copy versions for multi-department routing.
+                                </p>
+                                <div class="mt-2 grid grid-cols-1 gap-2 rounded-md border border-gray-200 bg-gray-50 p-3 md:grid-cols-2">
+                                    @foreach ($activeDepartments as $department)
+                                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
                                             <input
-                                                type="text"
-                                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                                x-model="child.copy_storage_location"
-                                                :name="'children[' + index + '][copy_storage_location]'"
-                                                placeholder="e.g. Cabinet B-2"
+                                                type="checkbox"
+                                                name="children[0][to_department_ids][]"
+                                                value="{{ $department->id }}"
+                                                x-model="destinationIds"
+                                                :disabled="forwardVersion === 'original' && !destinationIds.includes('{{ (string) $department->id }}') && destinationIds.length >= 1"
+                                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                                             >
-                                        </div>
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700">Copy Purpose (Optional)</label>
-                                            <input
-                                                type="text"
-                                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                                x-model="child.copy_purpose"
-                                                :name="'children[' + index + '][copy_purpose]'"
-                                                placeholder="e.g. Audit reference"
-                                            >
-                                        </div>
-                                    </div>
+                                            {{ $department->name }}
+                                        </label>
+                                    @endforeach
                                 </div>
-
-                                <div class="rounded-md border border-indigo-200 bg-indigo-50 p-2 md:col-span-3" x-show="child.forward_version_type !== 'original'">
-                                    <label class="block text-sm font-medium text-indigo-900">Original Storage Location (Required when forwarding copy)</label>
+                            @else
+                                <select
+                                    name="children[0][to_department_ids][]"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    required
+                                >
+                                    <option value="">Select Department</option>
+                                    @foreach ($activeDepartments as $department)
+                                        <option value="{{ $department->id }}" @selected($oldPrimaryDestinationId === (string) $department->id)>
+                                            {{ $department->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            @endif
+                            <x-input-error :messages="$errors->get('children.0.to_department_ids')" class="mt-2" />
+                            <x-input-error :messages="$errors->get('children.0.to_department_ids.*')" class="mt-2" />
+                        </div>
+                        @if ($canUseAdvancedRouting)
+                            <div class="rounded-md border border-gray-200 bg-gray-50 p-3" x-show="forwardVersion === 'original'" x-cloak>
+                                <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-700">
                                     <input
-                                        type="text"
-                                        class="mt-1 block w-full rounded-md border-indigo-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 md:w-2/3"
-                                        x-model="child.original_storage_location"
-                                        :name="'children[' + index + '][original_storage_location]'"
-                                        placeholder="e.g. Records Vault Shelf A"
+                                        type="checkbox"
+                                        name="children[0][copy_kept]"
+                                        value="1"
+                                        x-model="copyKept"
+                                        class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                                     >
-                                    <p class="mt-1 text-xs text-indigo-700">When forwarding a copy, the original remains in source custody.</p>
-                                </div>
+                                    Keep a photocopy in source department
+                                </label>
 
-                                <div class="rounded-md border border-gray-200 bg-gray-50 p-2 md:col-span-3">
-                                    <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-700">
-                                        <input x-bind:name="'children[' + index + '][is_returnable]'" type="checkbox" value="1" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" x-model="child.is_returnable">
-                                        Returnable original document
-                                    </label>
-                                    <div class="mt-2" x-show="child.is_returnable">
-                                        <label class="block text-sm font-medium text-gray-700">Return Deadline</label>
-                                        <input
-                                            type="date"
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 md:w-64"
-                                            x-model="child.return_deadline"
-                                            x-bind:name="'children[' + index + '][return_deadline]'"
-                                        >
+                                <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2" x-show="copyKept" x-cloak>
+                                    <div>
+                                        <x-input-label for="branch_copy_storage_location" :value="__('Copy Storage Location')" />
+                                        <x-text-input
+                                            id="branch_copy_storage_location"
+                                            name="children[0][copy_storage_location]"
+                                            type="text"
+                                            class="mt-1 block w-full"
+                                            :value="old('children.0.copy_storage_location')"
+                                            placeholder="e.g. Cabinet B-2"
+                                        />
+                                        <x-input-error :messages="$errors->get('children.0.copy_storage_location')" class="mt-2" />
+                                    </div>
+
+                                    <div>
+                                        <x-input-label for="branch_copy_purpose" :value="__('Copy Purpose (Optional)')" />
+                                        <x-text-input
+                                            id="branch_copy_purpose"
+                                            name="children[0][copy_purpose]"
+                                            type="text"
+                                            class="mt-1 block w-full"
+                                            :value="old('children.0.copy_purpose')"
+                                            placeholder="e.g. Audit reference"
+                                        />
+                                        <x-input-error :messages="$errors->get('children.0.copy_purpose')" class="mt-2" />
                                     </div>
                                 </div>
                             </div>
-                        </article>
-                    </template>
 
-                    <div class="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                        <label class="inline-flex items-start gap-2 text-sm text-amber-900">
-                            <input
-                                type="checkbox"
-                                name="confirm_routing_reviewed"
-                                value="1"
-                                class="mt-0.5 rounded border-amber-300 text-indigo-600 focus:ring-indigo-500"
-                                required
+                            <div class="rounded-md border border-indigo-200 bg-indigo-50 p-3" x-show="forwardVersion !== 'original'" x-cloak>
+                                <x-input-label for="branch_original_storage_location" :value="__('Original Storage Location')" class="text-indigo-900" />
+                                <x-text-input
+                                    id="branch_original_storage_location"
+                                    name="children[0][original_storage_location]"
+                                    type="text"
+                                    class="mt-1 block w-full md:w-2/3"
+                                    :value="old('children.0.original_storage_location')"
+                                    placeholder="e.g. Records Vault Shelf A"
+                                />
+                                <p class="mt-1 text-xs text-indigo-700">Required when forwarding copy versions.</p>
+                                <x-input-error :messages="$errors->get('children.0.original_storage_location')" class="mt-2" />
+                            </div>
+                        @endif
+
+                        <div class="rounded-md border border-gray-200 bg-gray-50 p-3">
+                            <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-700">
+                                <input
+                                    type="checkbox"
+                                    name="children[0][is_returnable]"
+                                    value="1"
+                                    x-model="returnable"
+                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                >
+                                Returnable original document
+                            </label>
+
+                            <div class="mt-3" x-show="returnable" x-cloak>
+                                <x-input-label for="branch_return_deadline" :value="__('Return Deadline')" />
+                                <x-text-input
+                                    id="branch_return_deadline"
+                                    name="children[0][return_deadline]"
+                                    type="date"
+                                    class="mt-1 block w-full md:w-64"
+                                    :value="old('children.0.return_deadline')"
+                                />
+                                <x-input-error :messages="$errors->get('children.0.return_deadline')" class="mt-2" />
+                            </div>
+                        </div>
+
+                        @if ($canUseAdvancedRouting)
+                            <div class="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                                <label class="inline-flex items-start gap-2 text-sm text-amber-900">
+                                    <input
+                                        type="checkbox"
+                                        name="confirm_routing_reviewed"
+                                        value="1"
+                                        class="mt-0.5 rounded border-amber-300 text-indigo-600 focus:ring-indigo-500"
+                                        @checked(old('confirm_routing_reviewed'))
+                                        required
+                                    >
+                                    I reviewed the routing details before submitting.
+                                </label>
+                            </div>
+                        @else
+                            <input type="hidden" name="confirm_routing_reviewed" value="1">
+                        @endif
+
+                        <div class="flex items-center justify-end gap-2 border-t border-gray-200 pt-4">
+                            <a
+                                href="{{ route('documents.queues.index') }}"
+                                class="inline-flex items-center rounded-md border border-gray-300 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50"
                             >
-                            I reviewed each child subject and destination department before submitting.
-                        </label>
-                    </div>
+                                Cancel
+                            </a>
+                            <x-primary-button>{{ __('Route') }}</x-primary-button>
+                        </div>
+                    </form>
+                </div>
 
-                    <div class="flex items-center justify-end gap-2 border-t border-gray-200 pt-4">
-                        <a
-                            href="{{ route('documents.queues.index') }}"
-                            class="inline-flex items-center rounded-md border border-gray-300 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50"
-                        >
-                            Cancel
-                        </a>
-                        <x-primary-button>
-                            {{ __('Split and Route Children') }}
-                        </x-primary-button>
-                    </div>
-                </form>
+                <div x-show="mode === 'child'" x-cloak class="p-4">
+                    <form
+                        method="POST"
+                        action="{{ route('documents.split.store', $parentDocument) }}"
+                        x-data="{
+                            sameOwner: @js(old('children.0.same_owner_as_parent', '1') !== '0'),
+                            forwardVersion: @js($canUseAdvancedRouting ? old('children.0.forward_version_type', 'original') : 'original'),
+                            destinationIds: @js($oldDestinationIds),
+                            copyKept: @js($canUseAdvancedRouting && (bool) old('children.0.copy_kept')),
+                            returnable: @js((bool) old('children.0.is_returnable')),
+                        }"
+                        class="space-y-4"
+                    >
+                        @csrf
+
+                        <input type="hidden" name="children[0][routing_mode]" value="child">
+                        @if (! $canUseAdvancedRouting)
+                            <input type="hidden" name="children[0][forward_version_type]" value="original">
+                        @endif
+
+                        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                            <div class="md:col-span-2">
+                                <x-input-label for="child_subject" :value="__('Child Subject')" />
+                                <x-text-input
+                                    id="child_subject"
+                                    name="children[0][subject]"
+                                    type="text"
+                                    class="mt-1 block w-full"
+                                    :value="old('children.0.subject', $parentDocument->subject)"
+                                    required
+                                />
+                                <x-input-error :messages="$errors->get('children.0.subject')" class="mt-2" />
+                            </div>
+
+                            <div>
+                                <x-input-label for="child_document_type" :value="__('Document Type')" />
+                                <select
+                                    id="child_document_type"
+                                    name="children[0][document_type]"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    required
+                                >
+                                    <option value="communication" @selected(old('children.0.document_type', $parentDocument->document_type) === 'communication')>Communication</option>
+                                    <option value="submission" @selected(old('children.0.document_type', $parentDocument->document_type) === 'submission')>Submission</option>
+                                    <option value="request" @selected(old('children.0.document_type', $parentDocument->document_type) === 'request')>Request</option>
+                                    <option value="for_processing" @selected(old('children.0.document_type', $parentDocument->document_type) === 'for_processing')>For Processing</option>
+                                </select>
+                                <x-input-error :messages="$errors->get('children.0.document_type')" class="mt-2" />
+                            </div>
+
+                            <div>
+                                <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-700">
+                                    <input
+                                        type="checkbox"
+                                        name="children[0][same_owner_as_parent]"
+                                        value="1"
+                                        x-model="sameOwner"
+                                        class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                    >
+                                    Same owner as parent
+                                </label>
+                            </div>
+                            <div x-show="!sameOwner" x-cloak>
+                                <x-input-label for="child_owner_type" :value="__('Owner Type')" />
+                                <select
+                                    id="child_owner_type"
+                                    name="children[0][owner_type]"
+                                    x-bind:disabled="sameOwner"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                >
+                                    <option value="district" @selected(old('children.0.owner_type', $parentDocument->owner_type) === 'district')>District</option>
+                                    <option value="school" @selected(old('children.0.owner_type', $parentDocument->owner_type) === 'school')>School</option>
+                                    <option value="personal" @selected(old('children.0.owner_type', $parentDocument->owner_type) === 'personal')>Personal</option>
+                                    <option value="others" @selected(old('children.0.owner_type', $parentDocument->owner_type) === 'others')>Others</option>
+                                </select>
+                                <x-input-error :messages="$errors->get('children.0.owner_type')" class="mt-2" />
+                            </div>
+
+                            <div x-show="!sameOwner" x-cloak>
+                                <x-input-label for="child_owner_name" :value="__('Owner Name')" />
+                                <x-text-input
+                                    id="child_owner_name"
+                                    name="children[0][owner_name]"
+                                    type="text"
+                                    class="mt-1 block w-full"
+                                    :value="old('children.0.owner_name', $parentDocument->owner_name)"
+                                    x-bind:disabled="sameOwner"
+                                />
+                                <x-input-error :messages="$errors->get('children.0.owner_name')" class="mt-2" />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                            @if ($canUseAdvancedRouting)
+                                <div>
+                                    <x-input-label for="child_forward_version_type" :value="__('Forward Version')" />
+                                    <select
+                                        id="child_forward_version_type"
+                                        name="children[0][forward_version_type]"
+                                        x-model="forwardVersion"
+                                        @change="if (forwardVersion === 'original' && destinationIds.length > 1) { destinationIds = [destinationIds[0]]; } if (forwardVersion !== 'original') { copyKept = false; }"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    >
+                                        <option value="original">Original</option>
+                                        <option value="certified_copy">Certified Copy</option>
+                                        <option value="photocopy">Photocopy</option>
+                                        <option value="scan">Digital Scan</option>
+                                    </select>
+                                    <x-input-error :messages="$errors->get('children.0.forward_version_type')" class="mt-2" />
+                                </div>
+                            @else
+                                <div class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                                    Basic mode: routing uses <span class="font-semibold text-gray-800">Original</span> document version.
+                                </div>
+                            @endif
+
+                            <div>
+                                <x-input-label for="child_remarks" :value="__('Remarks (Optional)')" />
+                                <textarea
+                                    id="child_remarks"
+                                    name="children[0][remarks]"
+                                    rows="2"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                >{{ old('children.0.remarks') }}</textarea>
+                                <x-input-error :messages="$errors->get('children.0.remarks')" class="mt-2" />
+                            </div>
+                        </div>
+
+                        <div>
+                            <x-input-label :value="$canUseAdvancedRouting ? __('Route To Departments') : __('Route To')" />
+                            @if ($canUseAdvancedRouting)
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Original version can route to one department only. Use copy versions for multi-department routing.
+                                </p>
+                                <div class="mt-2 grid grid-cols-1 gap-2 rounded-md border border-gray-200 bg-gray-50 p-3 md:grid-cols-2">
+                                    @foreach ($activeDepartments as $department)
+                                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                            <input
+                                                type="checkbox"
+                                                name="children[0][to_department_ids][]"
+                                                value="{{ $department->id }}"
+                                                x-model="destinationIds"
+                                                :disabled="forwardVersion === 'original' && !destinationIds.includes('{{ (string) $department->id }}') && destinationIds.length >= 1"
+                                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                            >
+                                            {{ $department->name }}
+                                        </label>
+                                    @endforeach
+                                </div>
+                            @else
+                                <select
+                                    name="children[0][to_department_ids][]"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    required
+                                >
+                                    <option value="">Select Department</option>
+                                    @foreach ($activeDepartments as $department)
+                                        <option value="{{ $department->id }}" @selected($oldPrimaryDestinationId === (string) $department->id)>
+                                            {{ $department->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            @endif
+                            <x-input-error :messages="$errors->get('children.0.to_department_ids')" class="mt-2" />
+                            <x-input-error :messages="$errors->get('children.0.to_department_ids.*')" class="mt-2" />
+                        </div>
+
+                        @if ($canUseAdvancedRouting)
+                            <div class="rounded-md border border-gray-200 bg-gray-50 p-3" x-show="forwardVersion === 'original'" x-cloak>
+                                <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-700">
+                                    <input
+                                        type="checkbox"
+                                        name="children[0][copy_kept]"
+                                        value="1"
+                                        x-model="copyKept"
+                                        class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                    >
+                                    Keep a photocopy in source department
+                                </label>
+
+                                <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2" x-show="copyKept" x-cloak>
+                                    <div>
+                                        <x-input-label for="child_copy_storage_location" :value="__('Copy Storage Location')" />
+                                        <x-text-input
+                                            id="child_copy_storage_location"
+                                            name="children[0][copy_storage_location]"
+                                            type="text"
+                                            class="mt-1 block w-full"
+                                            :value="old('children.0.copy_storage_location')"
+                                            placeholder="e.g. Cabinet B-2"
+                                        />
+                                        <x-input-error :messages="$errors->get('children.0.copy_storage_location')" class="mt-2" />
+                                    </div>
+
+                                    <div>
+                                        <x-input-label for="child_copy_purpose" :value="__('Copy Purpose (Optional)')" />
+                                        <x-text-input
+                                            id="child_copy_purpose"
+                                            name="children[0][copy_purpose]"
+                                            type="text"
+                                            class="mt-1 block w-full"
+                                            :value="old('children.0.copy_purpose')"
+                                            placeholder="e.g. Audit reference"
+                                        />
+                                        <x-input-error :messages="$errors->get('children.0.copy_purpose')" class="mt-2" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="rounded-md border border-indigo-200 bg-indigo-50 p-3" x-show="forwardVersion !== 'original'" x-cloak>
+                                <x-input-label for="child_original_storage_location" :value="__('Original Storage Location')" class="text-indigo-900" />
+                                <x-text-input
+                                    id="child_original_storage_location"
+                                    name="children[0][original_storage_location]"
+                                    type="text"
+                                    class="mt-1 block w-full md:w-2/3"
+                                    :value="old('children.0.original_storage_location')"
+                                    placeholder="e.g. Records Vault Shelf A"
+                                />
+                                <p class="mt-1 text-xs text-indigo-700">Required when forwarding copy versions.</p>
+                                <x-input-error :messages="$errors->get('children.0.original_storage_location')" class="mt-2" />
+                            </div>
+                        @endif
+
+                        <div class="rounded-md border border-gray-200 bg-gray-50 p-3">
+                            <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-700">
+                                <input
+                                    type="checkbox"
+                                    name="children[0][is_returnable]"
+                                    value="1"
+                                    x-model="returnable"
+                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                >
+                                Returnable original document
+                            </label>
+
+                            <div class="mt-3" x-show="returnable" x-cloak>
+                                <x-input-label for="child_return_deadline" :value="__('Return Deadline')" />
+                                <x-text-input
+                                    id="child_return_deadline"
+                                    name="children[0][return_deadline]"
+                                    type="date"
+                                    class="mt-1 block w-full md:w-64"
+                                    :value="old('children.0.return_deadline')"
+                                />
+                                <x-input-error :messages="$errors->get('children.0.return_deadline')" class="mt-2" />
+                            </div>
+                        </div>
+
+                        @if ($canUseAdvancedRouting)
+                            <div class="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                                <label class="inline-flex items-start gap-2 text-sm text-amber-900">
+                                    <input
+                                        type="checkbox"
+                                        name="confirm_routing_reviewed"
+                                        value="1"
+                                        class="mt-0.5 rounded border-amber-300 text-indigo-600 focus:ring-indigo-500"
+                                        @checked(old('confirm_routing_reviewed'))
+                                        required
+                                    >
+                                    I reviewed the child document details before submitting.
+                                </label>
+                            </div>
+                        @else
+                            <input type="hidden" name="confirm_routing_reviewed" value="1">
+                        @endif
+
+                        <div class="flex items-center justify-end gap-2 border-t border-gray-200 pt-4">
+                            <a
+                                href="{{ route('documents.queues.index') }}"
+                                class="inline-flex items-center rounded-md border border-gray-300 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50"
+                            >
+                                Cancel
+                            </a>
+                            <x-primary-button>{{ __('Create Child') }}</x-primary-button>
+                        </div>
+                    </form>
+                </div>
             </section>
         </div>
     </div>

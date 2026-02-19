@@ -11,6 +11,7 @@ use App\Models\Document;
 use App\Models\DocumentTransfer;
 use App\Models\User;
 use App\Notifications\AdminUserCreatedNotification;
+use App\Services\SystemLogService;
 use App\TransferStatus;
 use App\UserRole;
 use Illuminate\Http\RedirectResponse;
@@ -22,6 +23,11 @@ use Illuminate\View\View;
 
 class UserManagementController extends Controller
 {
+    /**
+     * Create a new controller instance.
+     */
+    public function __construct(protected SystemLogService $systemLogService) {}
+
     /**
      * Display users for administration.
      */
@@ -59,6 +65,18 @@ class UserManagementController extends Controller
             isReset: false
         ));
 
+        $this->systemLogService->admin(
+            action: 'user_created',
+            message: 'Admin created a new user account.',
+            user: $createdBy,
+            request: $request,
+            entity: $user,
+            context: [
+                'role' => $user->role?->value,
+                'department_id' => $user->department_id,
+            ]
+        );
+
         return redirect()
             ->route('admin.users.index')
             ->with('status', 'User created successfully. Login credentials were sent by email.');
@@ -82,6 +100,7 @@ class UserManagementController extends Controller
     public function update(UpdateAdminUserRequest $request, User $user): RedirectResponse
     {
         $validated = $request->validated();
+        $actor = $request->user();
         $currentDepartmentId = $user->department_id;
         $targetDepartmentId = isset($validated['department_id']) && $validated['department_id'] !== ''
             ? (int) $validated['department_id']
@@ -109,6 +128,18 @@ class UserManagementController extends Controller
 
         $user->save();
 
+        $this->systemLogService->admin(
+            action: 'user_updated',
+            message: 'Admin updated a user account.',
+            user: $actor,
+            request: $request,
+            entity: $user,
+            context: [
+                'role' => $user->role?->value,
+                'department_id' => $user->department_id,
+            ]
+        );
+
         return redirect()
             ->route('admin.users.index')
             ->with('status', 'User updated successfully.');
@@ -119,6 +150,8 @@ class UserManagementController extends Controller
      */
     public function resetTemporaryPassword(User $user): RedirectResponse
     {
+        $actor = auth()->user();
+
         if ($user->id === auth()->id()) {
             return redirect()
                 ->route('admin.users.index')
@@ -134,9 +167,16 @@ class UserManagementController extends Controller
 
         $user->notify(new AdminUserCreatedNotification(
             temporaryPassword: $temporaryPassword,
-            createdByName: auth()->user()?->name,
+            createdByName: $actor?->name,
             isReset: true
         ));
+
+        $this->systemLogService->admin(
+            action: 'user_password_reset',
+            message: 'Admin reset a user temporary password.',
+            user: $actor,
+            entity: $user
+        );
 
         return redirect()
             ->route('admin.users.index')
@@ -148,6 +188,8 @@ class UserManagementController extends Controller
      */
     public function destroy(User $user): RedirectResponse
     {
+        $actor = auth()->user();
+
         if ($user->id === auth()->id()) {
             return redirect()
                 ->route('admin.users.index')
@@ -155,6 +197,13 @@ class UserManagementController extends Controller
         }
 
         $user->delete();
+
+        $this->systemLogService->admin(
+            action: 'user_deleted',
+            message: 'Admin deleted a user account.',
+            user: $actor,
+            entity: $user
+        );
 
         return redirect()
             ->route('admin.users.index')
@@ -222,11 +271,20 @@ class UserManagementController extends Controller
      */
     protected function baseUserPayload(array $validated): array
     {
+        $role = (string) $validated['role'];
+        $departmentId = isset($validated['department_id']) && $validated['department_id'] !== ''
+            ? (int) $validated['department_id']
+            : null;
+
+        if ($role === UserRole::Guest->value) {
+            $departmentId = null;
+        }
+
         return [
             'name' => $validated['name'],
             'email' => strtolower((string) $validated['email']),
-            'role' => $validated['role'],
-            'department_id' => $validated['department_id'] ?? null,
+            'role' => $role,
+            'department_id' => $departmentId,
         ];
     }
 

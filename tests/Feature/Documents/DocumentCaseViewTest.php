@@ -105,3 +105,104 @@ test('case timeline filters by event type tracking and date range', function () 
 
     Carbon::setTestNow();
 });
+
+test('manager can close and reopen a case when all documents are finished', function () {
+    $department = Department::factory()->create();
+    $manager = User::factory()->create([
+        'role' => UserRole::Manager,
+        'department_id' => $department->id,
+    ]);
+    $documentCase = DocumentCase::factory()->create([
+        'status' => 'open',
+        'closed_at' => null,
+    ]);
+
+    Document::factory()->create([
+        'document_case_id' => $documentCase->id,
+        'status' => DocumentWorkflowStatus::Finished,
+    ]);
+
+    $this->actingAs($manager)
+        ->post(route('cases.close', $documentCase))
+        ->assertRedirect();
+
+    $documentCase->refresh();
+    expect($documentCase->status)->toBe('closed');
+    expect($documentCase->closed_at)->not->toBeNull();
+
+    $this->actingAs($manager)
+        ->post(route('cases.reopen', $documentCase))
+        ->assertRedirect();
+
+    $documentCase->refresh();
+    expect($documentCase->status)->toBe('open');
+    expect($documentCase->closed_at)->toBeNull();
+});
+
+test('manager cannot close case with open documents', function () {
+    $department = Department::factory()->create();
+    $manager = User::factory()->create([
+        'role' => UserRole::Manager,
+        'department_id' => $department->id,
+    ]);
+    $documentCase = DocumentCase::factory()->create([
+        'status' => 'open',
+        'closed_at' => null,
+    ]);
+
+    Document::factory()->create([
+        'document_case_id' => $documentCase->id,
+        'status' => DocumentWorkflowStatus::OnQueue,
+    ]);
+
+    $this->actingAs($manager)
+        ->from(route('cases.show', $documentCase))
+        ->post(route('cases.close', $documentCase))
+        ->assertRedirect(route('cases.show', $documentCase))
+        ->assertSessionHasErrors('case');
+
+    $documentCase->refresh();
+    expect($documentCase->status)->toBe('open');
+    expect($documentCase->closed_at)->toBeNull();
+});
+
+test('guest case index only shows cases opened by the same guest account', function () {
+    $guest = User::factory()->create([
+        'role' => UserRole::Guest,
+    ]);
+    $otherGuest = User::factory()->create([
+        'role' => UserRole::Guest,
+    ]);
+
+    $ownCase = DocumentCase::factory()->create([
+        'case_number' => 'CASE-GUEST-OWN-001',
+        'opened_by_user_id' => $guest->id,
+    ]);
+    $otherCase = DocumentCase::factory()->create([
+        'case_number' => 'CASE-GUEST-OTHER-001',
+        'opened_by_user_id' => $otherGuest->id,
+    ]);
+
+    $response = $this->actingAs($guest)->get(route('cases.index'));
+
+    $response->assertSuccessful();
+    $response->assertSee($ownCase->case_number);
+    $response->assertDontSee($otherCase->case_number);
+});
+
+test('guest cannot open a case owned by another user', function () {
+    $guest = User::factory()->create([
+        'role' => UserRole::Guest,
+    ]);
+    $otherGuest = User::factory()->create([
+        'role' => UserRole::Guest,
+    ]);
+
+    $otherCase = DocumentCase::factory()->create([
+        'opened_by_user_id' => $otherGuest->id,
+    ]);
+
+    $this->actingAs($guest)
+        ->get(route('cases.show', $otherCase))
+        ->assertForbidden();
+});

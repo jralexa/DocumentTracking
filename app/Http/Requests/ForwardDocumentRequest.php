@@ -38,6 +38,9 @@ class ForwardDocumentRequest extends FormRequest
             'copy_kept' => ['nullable', 'boolean'],
             'copy_storage_location' => ['nullable', 'required_if:copy_kept,1', 'string', 'max:255'],
             'copy_purpose' => ['nullable', 'string', 'max:1000'],
+            'dispatch_method' => ['nullable', Rule::in(['walk_in', 'courier', 'email', 'system'])],
+            'dispatch_reference' => ['nullable', 'string', 'max:255'],
+            'release_receipt_reference' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -51,6 +54,7 @@ class ForwardDocumentRequest extends FormRequest
         return [
             'to_department_id.not_in' => 'Destination department must be different from the current department.',
             'copy_storage_location.required_if' => 'Storage location is required when keeping a copy.',
+            'dispatch_method.in' => 'Dispatch method must be walk_in, courier, email, or system.',
         ];
     }
 }

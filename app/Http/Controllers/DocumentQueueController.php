@@ -61,7 +61,12 @@ class DocumentQueueController extends Controller
     {
         return Document::query()
             ->forOnQueue($user)
-            ->with(['documentCase', 'latestTransfer.toDepartment'])
+            ->with([
+                'documentCase' => fn ($query) => $query->withCount('documents'),
+                'latestTransfer.toDepartment',
+                'outgoingRelationships.relatedDocument:id,tracking_number,metadata',
+                'incomingRelationships.sourceDocument:id,tracking_number,metadata',
+            ])
             ->orderByRaw('due_at IS NULL')
             ->orderBy('due_at')
             ->orderBy('updated_at')

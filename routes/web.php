@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\DistrictController as AdminDistrictController;
 use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Admin\RolePermissionController;
 use App\Http\Controllers\Admin\SchoolController as AdminSchoolController;
+use App\Http\Controllers\Admin\SystemLogController as AdminSystemLogController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentMonthlyReportController;
@@ -18,7 +19,10 @@ use App\Http\Controllers\DocumentQueueController;
 use App\Http\Controllers\DocumentSplitController;
 use App\Http\Controllers\DocumentTrackController;
 use App\Http\Controllers\DocumentWorkflowController;
+use App\Http\Controllers\GlobalSearchController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -34,6 +38,27 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/notifications/unread', [NotificationController::class, 'unread'])->name('notifications.unread');
+    Route::get('/search', [GlobalSearchController::class, 'index'])->name('search.global');
+    Route::get('/search/suggestions', [GlobalSearchController::class, 'suggestions'])->name('search.suggestions');
+    Route::get('/documents/workspace', function (Request $request) {
+        $user = $request->user();
+        abort_unless($user !== null, 403);
+
+        if ($user->canProcessDocuments()) {
+            return redirect()->route('documents.queues.index');
+        }
+
+        if ($user->canIntakeDocuments()) {
+            return redirect()->route('documents.create');
+        }
+
+        if ($user->canViewDocuments()) {
+            return redirect()->route('documents.index');
+        }
+
+        return redirect()->route('documents.track');
+    })->name('documents.workspace');
 });
 
 Route::middleware(['auth', 'password.changed', 'can:documents.intake'])->group(function () {
@@ -69,6 +94,12 @@ Route::middleware(['auth', 'password.changed', 'can:documents.view'])->group(fun
 });
 
 Route::middleware(['auth', 'password.changed', 'can:documents.manage'])->group(function () {
+    Route::get('/documents/{document}/edit', [DocumentListController::class, 'edit'])->name('documents.edit');
+    Route::put('/documents/{document}', [DocumentListController::class, 'update'])->name('documents.update');
+    Route::delete('/documents/{document}', [DocumentListController::class, 'destroy'])->name('documents.destroy');
+    Route::post('/cases/{documentCase}/close', [DocumentCaseController::class, 'close'])->name('cases.close');
+    Route::post('/cases/{documentCase}/reopen', [DocumentCaseController::class, 'reopen'])->name('cases.reopen');
+
     Route::prefix('custody')->name('custody.')->group(function () {
         Route::get('/returnables', [DocumentCustodyController::class, 'returnables'])->name('returnables.index');
         Route::post('/returnables/{document}/returned', [DocumentCustodyController::class, 'markReturned'])->name('returnables.returned');
@@ -135,6 +166,7 @@ Route::middleware(['auth', 'password.changed', 'role:admin'])
         });
 
         Route::get('/roles-permissions', [RolePermissionController::class, 'index'])->name('roles-permissions.index');
+        Route::get('/system-logs', [AdminSystemLogController::class, 'index'])->name('system-logs.index');
     });
 
 require __DIR__.'/auth.php';

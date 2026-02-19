@@ -5,6 +5,8 @@
 
     <div class="py-6">
         <div class="mx-auto max-w-7xl space-y-5 sm:px-6 lg:px-8">
+            @include('custody.partials.tabs')
+
             <section class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
                 <form method="GET" action="{{ route('custody.copies.index') }}" class="grid grid-cols-1 gap-3 md:grid-cols-5">
                     <div class="md:col-span-2">

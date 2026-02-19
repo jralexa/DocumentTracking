@@ -5,6 +5,8 @@
 
     <div class="py-6">
         <div class="mx-auto max-w-7xl space-y-5 sm:px-6 lg:px-8">
+            @include('custody.partials.tabs')
+
             @if ($errors->has('returnable'))
                 <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
                     {{ $errors->first('returnable') }}
@@ -79,7 +81,7 @@
                                         @endif
                                     </td>
                                     <td class="px-4 py-3 text-right">
-                                        @if ($document->returned_at === null)
+                                        @if ($document->returned_at === null && auth()->user()?->department_id === $document->original_current_department_id)
                                             <details class="inline-block text-left">
                                                 <summary class="cursor-pointer rounded-md border border-gray-300 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-700 hover:bg-gray-50">
                                                     Mark Returned
@@ -99,6 +101,8 @@
                                                     </form>
                                                 </div>
                                             </details>
+                                        @elseif ($document->returned_at === null)
+                                            <span class="text-xs text-gray-400">No action</span>
                                         @else
                                             <span class="text-xs text-gray-500">{{ $document->returned_at?->format('M d, Y h:i A') }}</span>
                                         @endif

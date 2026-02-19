@@ -22,6 +22,9 @@ test('document can be linked to an existing case during intake', function () {
     ]);
     $existingCase = DocumentCase::factory()->create([
         'status' => 'open',
+        'owner_type' => 'others',
+        'owner_name' => 'Case Owner Name',
+        'owner_reference' => 'CASE-REF-01',
     ]);
 
     $response = $this->actingAs($user)->post(route('documents.store'), [
@@ -38,6 +41,34 @@ test('document can be linked to an existing case during intake', function () {
 
     $document = Document::query()->firstOrFail();
     expect($document->document_case_id)->toBe($existingCase->id);
+    expect($document->owner_type)->toBe($existingCase->owner_type);
+    expect($document->owner_name)->toBe($existingCase->owner_name);
+    expect(data_get($document->metadata, 'owner_reference'))->toBe($existingCase->owner_reference);
+});
+
+test('closed case cannot be linked during intake', function () {
+    $department = Department::factory()->create();
+    $user = User::factory()->create([
+        'role' => UserRole::Regular,
+        'department_id' => $department->id,
+    ]);
+    $closedCase = DocumentCase::factory()->create([
+        'status' => 'closed',
+        'closed_at' => now(),
+    ]);
+
+    $response = $this->actingAs($user)->post(route('documents.store'), [
+        'quick_mode' => '1',
+        'case_mode' => 'existing',
+        'document_case_id' => $closedCase->id,
+        'subject' => 'Late supporting document',
+        'document_type' => 'submission',
+        'owner_type' => 'personal',
+        'owner_name' => 'Maria L. Santos',
+    ]);
+
+    $response->assertSessionHasErrors('document_case_id');
+    expect(Document::query()->count())->toBe(0);
 });
 
 test('assignee can split parent document into routed child documents', function () {
@@ -122,6 +153,36 @@ test('non assignee cannot open split wizard', function () {
     $this->actingAs($otherUser)
         ->get(route('documents.split.create', $document))
         ->assertForbidden();
+});
+
+test('child document cannot open split wizard', function () {
+    $department = Department::factory()->create();
+    $user = User::factory()->create(['department_id' => $department->id, 'role' => UserRole::Regular]);
+    $documentCase = DocumentCase::factory()->create(['status' => 'open']);
+
+    $parent = Document::factory()->create([
+        'document_case_id' => $documentCase->id,
+        'current_department_id' => $department->id,
+        'current_user_id' => $user->id,
+        'status' => DocumentWorkflowStatus::OnQueue,
+    ]);
+    $child = Document::factory()->create([
+        'document_case_id' => $documentCase->id,
+        'current_department_id' => $department->id,
+        'current_user_id' => $user->id,
+        'status' => DocumentWorkflowStatus::OnQueue,
+    ]);
+
+    DocumentRelationship::factory()->create([
+        'source_document_id' => $child->id,
+        'related_document_id' => $parent->id,
+        'relation_type' => DocumentRelationshipType::SplitFrom,
+        'created_by_user_id' => $user->id,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('documents.split.create', $child))
+        ->assertStatus(422);
 });
 
 test('split wizard starts from next available suffix for existing split parent', function () {

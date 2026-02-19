@@ -27,11 +27,13 @@ class ReleaseOriginalCustodyRequest extends FormRequest
 
         return [
             'to_department_id' => [
-                'required',
+                'nullable',
+                'required_without:release_to',
                 'integer',
                 Rule::exists('departments', 'id')->where(static fn ($query) => $query->where('is_active', true)),
                 Rule::notIn([$currentOriginalDepartmentId]),
             ],
+            'release_to' => ['nullable', 'required_without:to_department_id', 'string', 'max:255'],
             'original_storage_location' => ['nullable', 'string', 'max:255'],
             'remarks' => ['nullable', 'string', 'max:1000'],
             'copy_kept' => ['nullable', 'boolean'],
@@ -49,6 +51,8 @@ class ReleaseOriginalCustodyRequest extends FormRequest
     {
         return [
             'to_department_id.not_in' => 'Destination department must be different from current original holder department.',
+            'to_department_id.required_without' => 'Select a destination department or provide release-to details.',
+            'release_to.required_without' => 'Provide release-to details when not routing to a department.',
             'copy_storage_location.required_if' => 'Storage location is required when keeping a copy.',
         ];
     }

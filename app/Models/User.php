@@ -51,6 +51,18 @@ class User extends Authenticatable
     ];
 
     /**
+     * Roles with document list visibility.
+     *
+     * @var array<int, UserRole>
+     */
+    protected const VIEW_ROLES = [
+        UserRole::Admin,
+        UserRole::Manager,
+        UserRole::Regular,
+        UserRole::Guest,
+    ];
+
+    /**
      * Roles with management/export capability.
      *
      * @var array<int, UserRole>
@@ -160,6 +172,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get system log entries performed by this user.
+     */
+    public function systemLogs(): HasMany
+    {
+        return $this->hasMany(SystemLog::class);
+    }
+
+    /**
      * Determine if the user has the given role.
      */
     public function hasRole(UserRole|string $role): bool
@@ -197,7 +217,7 @@ class User extends Authenticatable
      */
     public function canViewDocuments(): bool
     {
-        return $this->hasAnyRole(self::PROCESS_ROLES);
+        return $this->hasAnyRole(self::VIEW_ROLES);
     }
 
     /**

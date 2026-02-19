@@ -106,6 +106,52 @@ test('manager can mark returnable document as returned', function () {
     expect($document->current_user_id)->toBeNull();
 });
 
+test('manager cannot mark returnable document as returned when holder is another department', function () {
+    $holderDepartment = Department::factory()->create();
+    $otherDepartment = Department::factory()->create();
+    $manager = User::factory()->create([
+        'role' => UserRole::Manager,
+        'department_id' => $otherDepartment->id,
+    ]);
+    $holderUser = User::factory()->create([
+        'role' => UserRole::Regular,
+        'department_id' => $holderDepartment->id,
+    ]);
+
+    $document = Document::factory()->create([
+        'is_returnable' => true,
+        'return_deadline' => now()->addDays(5)->toDateString(),
+        'original_current_department_id' => $holderDepartment->id,
+        'original_custodian_user_id' => $holderUser->id,
+        'original_physical_location' => 'Holder Vault 1',
+        'returned_at' => null,
+    ]);
+
+    DocumentCustody::factory()->create([
+        'document_id' => $document->id,
+        'department_id' => $holderDepartment->id,
+        'user_id' => $holderUser->id,
+        'version_type' => DocumentVersionType::Original,
+        'is_current' => true,
+        'status' => 'in_custody',
+    ]);
+
+    $response = $this->actingAs($manager)
+        ->from(route('custody.returnables.index'))
+        ->post(route('custody.returnables.returned', $document), [
+            'returned_to' => 'Unauthorized Receiver',
+        ]);
+
+    $response->assertRedirect(route('custody.returnables.index'));
+    $response->assertSessionHasErrors('returnable');
+
+    $document->refresh();
+
+    expect($document->returned_at)->toBeNull();
+    expect($document->returned_to)->toBeNull();
+    expect($document->original_current_department_id)->toBe($holderDepartment->id);
+});
+
 test('copy inventory page excludes discarded copy records by default', function () {
     $department = Department::factory()->create();
     $regular = User::factory()->create([
@@ -219,4 +265,73 @@ test('non holder department cannot release original custody', function () {
     $document->refresh();
 
     expect($document->original_current_department_id)->toBe($sourceDepartment->id);
+});
+
+test('current holder can release original custody without department routing', function () {
+    $sourceDepartment = Department::factory()->create(['name' => 'Records Section']);
+    $user = User::factory()->create([
+        'role' => UserRole::Regular,
+        'department_id' => $sourceDepartment->id,
+    ]);
+
+    $document = Document::factory()->create([
+        'original_current_department_id' => $sourceDepartment->id,
+        'original_custodian_user_id' => $user->id,
+        'original_physical_location' => 'Records Cabinet A-1',
+    ]);
+
+    DocumentCustody::factory()->create([
+        'document_id' => $document->id,
+        'department_id' => $sourceDepartment->id,
+        'user_id' => $user->id,
+        'version_type' => DocumentVersionType::Original,
+        'is_current' => true,
+        'status' => 'in_custody',
+    ]);
+
+    $response = $this->actingAs($user)->post(route('custody.originals.release', $document), [
+        'release_to' => 'Document owner - external release',
+        'remarks' => 'Released directly to owner.',
+    ]);
+
+    $response->assertRedirect();
+    $response->assertSessionHas('status');
+
+    $document->refresh();
+
+    expect($document->original_current_department_id)->toBeNull();
+    expect($document->original_custodian_user_id)->toBeNull();
+    expect($document->original_physical_location)->toBeNull();
+});
+
+test('release original requires destination department or release to value', function () {
+    $sourceDepartment = Department::factory()->create(['name' => 'Records Section']);
+    $user = User::factory()->create([
+        'role' => UserRole::Regular,
+        'department_id' => $sourceDepartment->id,
+    ]);
+
+    $document = Document::factory()->create([
+        'original_current_department_id' => $sourceDepartment->id,
+        'original_custodian_user_id' => $user->id,
+    ]);
+
+    DocumentCustody::factory()->create([
+        'document_id' => $document->id,
+        'department_id' => $sourceDepartment->id,
+        'user_id' => $user->id,
+        'version_type' => DocumentVersionType::Original,
+        'is_current' => true,
+        'status' => 'in_custody',
+    ]);
+
+    $response = $this->actingAs($user)
+        ->from(route('custody.originals.index'))
+        ->post(route('custody.originals.release', $document), []);
+
+    $response->assertRedirect(route('custody.originals.index'));
+    $response->assertSessionHasErrors([
+        'to_department_id',
+        'release_to',
+    ]);
 });

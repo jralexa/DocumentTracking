@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -24,8 +25,21 @@ class StoreDocumentRequest extends FormRequest
     {
         return [
             'quick_mode' => ['nullable', 'boolean'],
+            'add_another' => ['nullable', 'boolean'],
             'case_mode' => ['nullable', Rule::in(['new', 'existing'])],
-            'document_case_id' => ['nullable', 'required_if:case_mode,existing', 'integer', 'exists:document_cases,id'],
+            'document_case_id' => [
+                'nullable',
+                'required_if:case_mode,existing',
+                'integer',
+                Rule::exists('document_cases', 'id')->where(function ($query): void {
+                    $query->where('status', 'open');
+
+                    $user = $this->user();
+                    if ($user !== null && $user->hasRole(UserRole::Guest)) {
+                        $query->where('opened_by_user_id', $user->id);
+                    }
+                }),
+            ],
             'case_title' => ['nullable', 'string', 'max:255'],
             'subject' => ['required', 'string', 'max:255'],
             'reference_number' => ['nullable', 'string', 'max:255'],
@@ -43,6 +57,13 @@ class StoreDocumentRequest extends FormRequest
             ],
             'owner_name' => ['nullable', 'string', 'max:255', 'required_unless:owner_type,district,school'],
             'owner_reference' => ['nullable', 'string', 'max:255'],
+            'source_channel' => ['nullable', Rule::in(['walk_in', 'email', 'courier', 'system'])],
+            'document_classification' => ['nullable', Rule::in(['routine', 'urgent', 'confidential'])],
+            'routing_slip_number' => ['nullable', 'string', 'max:255'],
+            'control_number' => ['nullable', 'string', 'max:255'],
+            'received_by_name' => ['nullable', 'string', 'max:255'],
+            'received_at' => ['nullable', 'date'],
+            'sla_days' => ['nullable', 'integer', 'min:1', 'max:90'],
             'priority' => ['nullable', 'required_unless:quick_mode,1', Rule::in(['low', 'normal', 'high', 'urgent'])],
             'due_at' => ['nullable', 'date'],
             'description' => ['nullable', 'string', 'max:2000'],
@@ -65,7 +86,10 @@ class StoreDocumentRequest extends FormRequest
         return [
             'return_deadline.required_if' => 'Return deadline is required when document is marked returnable.',
             'document_case_id.required_if' => 'Please select an existing case when case mode is set to existing.',
+            'document_case_id.exists' => 'Selected case is not open or not available for your account.',
             'owner_name.required_unless' => 'Owner name is required for personal and others owner type.',
+            'source_channel.in' => 'Source channel must be walk_in, email, courier, or system.',
+            'document_classification.in' => 'Classification must be routine, urgent, or confidential.',
         ];
     }
 }

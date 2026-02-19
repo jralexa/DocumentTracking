@@ -7,101 +7,102 @@
     $canIntakeDocuments = $user->canIntakeDocuments();
     $canProcessDocuments = $user->canProcessDocuments();
     $canViewDocuments = $user->canViewDocuments();
+    $canManageDocuments = $user->canManageDocuments();
     $canExportReports = $user->canExportReports();
     $isAdmin = $user->hasRole(UserRole::Admin);
-    $isAdminOrManager = $user->hasAnyRole([UserRole::Admin, UserRole::Manager]);
-    $showDashboard = $user->hasAnyRole([UserRole::Admin, UserRole::Manager, UserRole::Regular]);
 
-    $dashboardRoute = Route::has('dashboard') ? route('dashboard') : null;
     $createDocumentRoute = Route::has('documents.create') ? route('documents.create') : null;
     $queueRoute = Route::has('documents.queues.index') ? route('documents.queues.index') : null;
     $trackDocumentRoute = Route::has('documents.track') ? route('documents.track') : null;
     $documentListRoute = Route::has('documents.index') ? route('documents.index') : null;
+    $casesIndexRoute = Route::has('cases.index') ? route('cases.index') : null;
     $custodyOriginalsRoute = Route::has('custody.originals.index') ? route('custody.originals.index') : null;
     $custodyCopiesRoute = Route::has('custody.copies.index') ? route('custody.copies.index') : null;
     $custodyReturnablesRoute = Route::has('custody.returnables.index') ? route('custody.returnables.index') : null;
     $monthlyReportRoute = Route::has('reports.departments.monthly') ? route('reports.departments.monthly') : null;
-    $reportsIndexRoute = Route::has('reports.index') ? route('reports.index') : $monthlyReportRoute;
-    $casesIndexRoute = Route::has('cases.index') ? route('cases.index') : null;
+    $slaComplianceReportRoute = Route::has('reports.sla-compliance') ? route('reports.sla-compliance') : null;
+    $agingOverdueReportRoute = Route::has('reports.aging-overdue') ? route('reports.aging-overdue') : null;
+    $performanceReportRoute = Route::has('reports.performance') ? route('reports.performance') : null;
+    $custodyReportRoute = Route::has('reports.custody') ? route('reports.custody') : null;
     $adminOrganizationRoute = Route::has('admin.organization.index') ? route('admin.organization.index') : null;
     $adminUsersRoute = Route::has('admin.users.index') ? route('admin.users.index') : null;
+    $adminSystemLogsRoute = Route::has('admin.system-logs.index') ? route('admin.system-logs.index') : null;
 
     $sections = [];
 
-    if ($showDashboard) {
-        $sections[] = [
-            'title' => 'Dashboard',
-            'items' => [
-                ['label' => 'Dashboard', 'href' => $dashboardRoute, 'active' => request()->routeIs('dashboard')],
-            ],
-        ];
-    }
-
     $documentItems = [];
-
-    if ($canIntakeDocuments) {
-        $documentItems[] = ['label' => 'Receive and Record', 'href' => $createDocumentRoute, 'active' => request()->routeIs('documents.create')];
+    if ($canIntakeDocuments && $createDocumentRoute !== null) {
+        $documentItems[] = ['label' => 'Add Document', 'href' => $createDocumentRoute, 'active' => request()->routeIs('documents.create')];
     }
-
-    if ($canProcessDocuments) {
-        $documentItems[] = ['label' => 'Route / Process', 'href' => $queueRoute, 'active' => request()->routeIs('documents.queues.*')];
+    if ($canProcessDocuments && $queueRoute !== null) {
+        $documentItems[] = ['label' => 'Process Documents', 'href' => $queueRoute, 'active' => request()->routeIs('documents.queues.*') || request()->routeIs('documents.split.*')];
     }
-
-    $documentItems[] = ['label' => 'Track Document', 'href' => $trackDocumentRoute, 'active' => request()->routeIs('documents.track')];
-
-    if ($canViewDocuments) {
+    $monitorRoute = $trackDocumentRoute ?? $documentListRoute ?? $casesIndexRoute;
+    if ($monitorRoute !== null) {
         $documentItems[] = [
-            'label' => $isAdminOrManager ? 'Document List / Search' : 'Document List / Search (View Only)',
-            'href' => $documentListRoute,
-            'active' => request()->routeIs('documents.index'),
+            'label' => 'Monitoring',
+            'href' => $monitorRoute,
+            'active' => request()->routeIs('documents.track') || request()->routeIs('documents.index') || request()->routeIs('cases.*'),
+        ];
+    }
+    $custodyWorkspaceRoute = $custodyOriginalsRoute ?? $custodyCopiesRoute ?? $custodyReturnablesRoute;
+    $canAccessCustodyWorkspace = ($canProcessDocuments && ($custodyOriginalsRoute !== null || $custodyCopiesRoute !== null))
+        || ($canManageDocuments && $custodyReturnablesRoute !== null);
+    if ($canAccessCustodyWorkspace && $custodyWorkspaceRoute !== null) {
+        $documentItems[] = [
+            'label' => 'Custody',
+            'href' => $custodyWorkspaceRoute,
+            'active' => request()->routeIs('custody.*'),
         ];
     }
 
-    if (count($documentItems) > 0) {
+    if ($documentItems !== []) {
         $sections[] = [
             'title' => 'Documents',
             'items' => $documentItems,
         ];
     }
 
-    if ($isAdminOrManager) {
+    $keyElementItems = [];
+    if ($isAdmin && $adminOrganizationRoute !== null) {
+        $keyElementItems[] = [
+            'label' => 'Organization',
+            'href' => route('admin.organization.index', ['tab' => 'departments']),
+            'active' => request()->routeIs('admin.organization.*') || request()->routeIs('admin.departments.*') || request()->routeIs('admin.districts.*') || request()->routeIs('admin.schools.*'),
+        ];
+    }
+    if ($isAdmin && $adminUsersRoute !== null) {
+        $keyElementItems[] = ['label' => 'User Management', 'href' => $adminUsersRoute, 'active' => request()->routeIs('admin.users.*') || request()->routeIs('admin.roles-permissions.*')];
+    }
+    if ($isAdmin && $adminSystemLogsRoute !== null) {
+        $keyElementItems[] = ['label' => 'System Logs', 'href' => $adminSystemLogsRoute, 'active' => request()->routeIs('admin.system-logs.*')];
+    }
+
+    if ($keyElementItems !== []) {
         $sections[] = [
-            'title' => 'Cases',
-            'items' => [
-                ['label' => 'Case List', 'href' => $casesIndexRoute, 'active' => request()->routeIs('cases.*')],
-            ],
+            'title' => 'Key Elements',
+            'items' => $keyElementItems,
         ];
     }
 
-    if ($canProcessDocuments) {
-        $sections[] = [
-            'title' => 'Custody & Copies',
-            'items' => [
-                ['label' => 'Original Custody', 'href' => $custodyOriginalsRoute, 'active' => request()->routeIs('custody.originals.*')],
-                ['label' => 'Copy Inventory', 'href' => $custodyCopiesRoute, 'active' => request()->routeIs('custody.copies.*')],
-                ['label' => 'Returnable Documents', 'href' => $custodyReturnablesRoute, 'active' => request()->routeIs('custody.returnables.*'), 'hidden' => ! $isAdminOrManager],
-            ],
+    $analyticsItems = [];
+    $analyticsWorkspaceRoute = $monthlyReportRoute
+        ?? $slaComplianceReportRoute
+        ?? $agingOverdueReportRoute
+        ?? $performanceReportRoute
+        ?? $custodyReportRoute;
+    if ($canExportReports && $analyticsWorkspaceRoute !== null) {
+        $analyticsItems[] = [
+            'label' => 'Reports',
+            'href' => $analyticsWorkspaceRoute,
+            'active' => request()->routeIs('reports.*'),
         ];
     }
 
-    if ($canExportReports) {
+    if ($analyticsItems !== []) {
         $sections[] = [
-            'title' => 'Reports',
-            'items' => [
-                ['label' => 'Reports', 'href' => $reportsIndexRoute, 'active' => request()->routeIs('reports.*')],
-            ],
-        ];
-    }
-
-    if ($isAdmin) {
-        $sections[] = [
-            'title' => 'Administration',
-            'items' => [
-                ['label' => 'Organization', 'href' => $adminOrganizationRoute, 'active' => request()->routeIs('admin.organization.*') || request()->routeIs('admin.departments.*') || request()->routeIs('admin.districts.*') || request()->routeIs('admin.schools.*')],
-                ['label' => 'Users', 'href' => $adminUsersRoute, 'active' => request()->routeIs('admin.users.*') || request()->routeIs('admin.roles-permissions.*')],
-                ['label' => 'System Logs', 'href' => null, 'active' => false],
-                ['label' => 'Settings', 'href' => null, 'active' => false],
-            ],
+            'title' => 'Analytics',
+            'items' => $analyticsItems,
         ];
     }
 @endphp
@@ -109,7 +110,7 @@
 <div class="space-y-5">
     @foreach ($sections as $section)
         @php
-            $visibleItems = array_values(array_filter($section['items'], static fn (array $item): bool => ($item['hidden'] ?? false) !== true));
+            $visibleItems = $section['items'];
             $sectionHasActive = collect($visibleItems)->contains(static fn (array $item): bool => (bool) ($item['active'] ?? false));
             $isSingleItemSection = count($visibleItems) === 1;
         @endphp
@@ -117,13 +118,8 @@
         @if ($isSingleItemSection)
             @php $singleItem = $visibleItems[0]; @endphp
             <div class="rounded-lg border border-transparent">
-                @if (strtolower($section['title']) !== 'dashboard')
-                    <p class="px-3 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ $section['title'] }}</p>
-                @endif
-                <div @class([
-                    'mt-2 space-y-1',
-                    'ml-3 border-l border-slate-200 pl-3' => strtolower($section['title']) !== 'dashboard',
-                ])>
+                <p class="px-3 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ $section['title'] }}</p>
+                <div class="mt-2 ml-3 space-y-1 border-l border-slate-200 pl-3">
                     @if ($singleItem['href'])
                         <a
                             href="{{ $singleItem['href'] }}"
@@ -136,11 +132,6 @@
                         >
                             {{ $singleItem['label'] }}
                         </a>
-                    @else
-                        <span class="flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-slate-400">
-                            {{ $singleItem['label'] }}
-                            <span class="text-[10px] uppercase tracking-wide">Soon</span>
-                        </span>
                     @endif
                 </div>
             </div>
@@ -187,11 +178,6 @@
                             >
                                 {{ $item['label'] }}
                             </a>
-                        @else
-                            <span class="flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-slate-400">
-                                {{ $item['label'] }}
-                                <span class="text-[10px] uppercase tracking-wide">Soon</span>
-                            </span>
                         @endif
                     @endforeach
                 </div>

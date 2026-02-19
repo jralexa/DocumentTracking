@@ -96,7 +96,7 @@ test('custody service actions record custody events', function () {
         custodian: $user
     );
 
-    $custodyService->markOriginalReturned($document, 'Owner X');
+    $custodyService->markOriginalReturned($document, $user, 'Owner X');
 
     expect(DocumentEvent::query()->where('document_id', $document->id)->where('event_type', DocumentEventType::CustodyAssigned->value)->exists())->toBeTrue();
     expect(DocumentEvent::query()->where('document_id', $document->id)->where('event_type', DocumentEventType::CustodyDerivativeRecorded->value)->exists())->toBeTrue();

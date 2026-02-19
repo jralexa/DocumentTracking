@@ -59,7 +59,6 @@
                         <table class="min-w-full divide-y divide-gray-200 text-sm">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-4 py-3 text-left font-semibold text-gray-700">Code</th>
                                     <th class="px-4 py-3 text-left font-semibold text-gray-700">Name</th>
                                     <th class="px-4 py-3 text-left font-semibold text-gray-700">Abbreviation</th>
                                     <th class="px-4 py-3 text-left font-semibold text-gray-700">Users</th>
@@ -70,8 +69,7 @@
                             <tbody class="divide-y divide-gray-100 bg-white">
                                 @forelse ($records as $department)
                                     <tr>
-                                        <td class="px-4 py-3 font-medium text-gray-900">{{ $department->code }}</td>
-                                        <td class="px-4 py-3 text-gray-700">{{ $department->name }}</td>
+                                        <td class="px-4 py-3 font-medium text-gray-900">{{ $department->name }}</td>
                                         <td class="px-4 py-3 text-gray-700">{{ $department->abbreviation ?? '-' }}</td>
                                         <td class="px-4 py-3 text-gray-700">{{ $department->users_count }}</td>
                                         <td class="px-4 py-3">
@@ -96,7 +94,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="px-4 py-6 text-center text-gray-500">No departments found.</td>
+                                        <td colspan="5" class="px-4 py-6 text-center text-gray-500">No departments found.</td>
                                     </tr>
                                 @endforelse
                             </tbody>

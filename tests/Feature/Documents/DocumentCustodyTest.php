@@ -96,7 +96,7 @@ test('marking original returned clears active original tracker and stamps return
     ]);
 
     $returnedAt = Carbon::create(2026, 2, 14, 10, 30, 0);
-    $service->markOriginalReturned($document, 'Juan Dela Cruz', $returnedAt);
+    $service->markOriginalReturned($document, $custodian, 'Juan Dela Cruz', $returnedAt);
 
     $document->refresh();
     $originalCustody->refresh();

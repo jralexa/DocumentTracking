@@ -13,12 +13,6 @@
                     @method('PUT')
 
                     <div>
-                        <x-input-label for="code" :value="__('Code')" />
-                        <x-text-input id="code" name="code" type="text" class="mt-1 block w-full" :value="old('code', $department->code)" required />
-                        <x-input-error :messages="$errors->get('code')" class="mt-2" />
-                    </div>
-
-                    <div>
                         <x-input-label for="name" :value="__('Name')" />
                         <x-text-input id="name" name="name" type="text" class="mt-1 block w-full" :value="old('name', $department->name)" required />
                         <x-input-error :messages="$errors->get('name')" class="mt-2" />
@@ -27,6 +21,7 @@
                     <div>
                         <x-input-label for="abbreviation" :value="__('Abbreviation (Optional)')" />
                         <x-text-input id="abbreviation" name="abbreviation" type="text" class="mt-1 block w-full" :value="old('abbreviation', $department->abbreviation)" />
+                        <p class="mt-1 text-xs text-gray-500">Department code is managed internally.</p>
                         <x-input-error :messages="$errors->get('abbreviation')" class="mt-2" />
                     </div>
 

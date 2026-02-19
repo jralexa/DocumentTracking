@@ -1,6 +1,7 @@
 <?php
 
 use App\DocumentEventType;
+use App\DocumentRelationshipType;
 use App\DocumentVersionType;
 use App\DocumentWorkflowStatus;
 use App\Models\Department;
@@ -8,6 +9,7 @@ use App\Models\Document;
 use App\Models\DocumentCase;
 use App\Models\DocumentCopy;
 use App\Models\DocumentCustody;
+use App\Models\DocumentRelationship;
 use App\Models\DocumentTransfer;
 use App\Models\User;
 use App\TransferStatus;
@@ -322,6 +324,88 @@ test('queue index shows correct incoming on queue and outgoing segmentation', fu
     $response->assertSee($incomingDocument->tracking_number);
     $response->assertSee($onQueueDocument->tracking_number);
     $response->assertSee($outgoingDocument->tracking_number);
+});
+
+test('queue index shows child relation indicator for split-linked queued document', function () {
+    $department = Department::factory()->create();
+    $user = User::factory()->create(['department_id' => $department->id, 'role' => UserRole::Regular]);
+    $parentDocument = Document::factory()->create([
+        'current_department_id' => $department->id,
+        'status' => DocumentWorkflowStatus::Finished,
+    ]);
+    $childDocument = Document::factory()->create([
+        'current_department_id' => $department->id,
+        'current_user_id' => $user->id,
+        'status' => DocumentWorkflowStatus::OnQueue,
+    ]);
+
+    DocumentRelationship::factory()->create([
+        'source_document_id' => $childDocument->id,
+        'related_document_id' => $parentDocument->id,
+        'relation_type' => DocumentRelationshipType::SplitFrom,
+    ]);
+
+    $response = $this->actingAs($user)->get(route('documents.queues.index'));
+
+    $response->assertSuccessful();
+    $response->assertSee('Relation');
+    $response->assertSee('Child');
+    $response->assertSee('of '.$parentDocument->tracking_number);
+});
+
+test('queue index shows case linked indicator when case has multiple documents without split relationship', function () {
+    $department = Department::factory()->create();
+    $user = User::factory()->create(['department_id' => $department->id, 'role' => UserRole::Regular]);
+    $documentCase = DocumentCase::factory()->create();
+
+    Document::factory()->create([
+        'document_case_id' => $documentCase->id,
+        'current_department_id' => $department->id,
+        'status' => DocumentWorkflowStatus::Finished,
+    ]);
+
+    Document::factory()->create([
+        'document_case_id' => $documentCase->id,
+        'current_department_id' => $department->id,
+        'current_user_id' => $user->id,
+        'status' => DocumentWorkflowStatus::OnQueue,
+    ]);
+
+    $response = $this->actingAs($user)->get(route('documents.queues.index'));
+
+    $response->assertSuccessful();
+    $response->assertSee('Case-linked');
+    $response->assertSee($documentCase->case_number);
+});
+
+test('queue index hides split link for child document rows', function () {
+    $department = Department::factory()->create();
+    $user = User::factory()->create(['department_id' => $department->id, 'role' => UserRole::Regular]);
+    $documentCase = DocumentCase::factory()->create(['status' => 'open']);
+
+    $parentDocument = Document::factory()->create([
+        'document_case_id' => $documentCase->id,
+        'current_department_id' => $department->id,
+        'status' => DocumentWorkflowStatus::Finished,
+    ]);
+    $childDocument = Document::factory()->create([
+        'document_case_id' => $documentCase->id,
+        'current_department_id' => $department->id,
+        'current_user_id' => $user->id,
+        'status' => DocumentWorkflowStatus::OnQueue,
+    ]);
+
+    DocumentRelationship::factory()->create([
+        'source_document_id' => $childDocument->id,
+        'related_document_id' => $parentDocument->id,
+        'relation_type' => DocumentRelationshipType::SplitFrom,
+    ]);
+
+    $response = $this->actingAs($user)->get(route('documents.queues.index'));
+
+    $response->assertSuccessful();
+    $response->assertSee('Child');
+    $response->assertDontSee(route('documents.split.create', $childDocument), false);
 });
 
 test('on queue excludes documents assigned to user but in different current department', function () {

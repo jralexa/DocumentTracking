@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\DocumentCase>
@@ -25,6 +25,7 @@ class DocumentCaseFactory extends Factory
             'owner_type' => $ownerType,
             'owner_name' => fake()->name(),
             'owner_reference' => fake()->optional()->bothify('REF-####'),
+            'opened_by_user_id' => null,
             'description' => fake()->optional()->paragraph(),
             'status' => fake()->randomElement(['open', 'on_hold', 'closed']),
             'priority' => fake()->randomElement(['low', 'normal', 'high', 'urgent']),

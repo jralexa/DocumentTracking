@@ -7,6 +7,8 @@
 
     <div class="py-6">
         <div class="mx-auto max-w-7xl space-y-5 sm:px-6 lg:px-8">
+            @include('documents.partials.monitor-tabs')
+
             <section class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
                 <form method="GET" action="{{ route('documents.track') }}" class="grid grid-cols-1 items-end gap-3 md:grid-cols-4">
                     <div class="md:col-span-3">
@@ -43,14 +45,26 @@
                     </article>
 
                     <article class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                        <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Current Status</h3>
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Status</h3>
                         <p class="mt-2 text-sm font-semibold text-gray-900">{{ str_replace('_', ' ', ucfirst($document->status->value)) }}</p>
-                        <p class="text-xs text-gray-500">
-                            Holder: {{ $document->currentDepartment?->name ?? 'Unassigned' }}
-                            @if ($document->currentUser)
-                                ({{ $document->currentUser->name }})
-                            @endif
-                        </p>
+                        @if ($document->returned_at)
+                            <p class="mt-1">
+                                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-emerald-800">
+                                    Returned
+                                </span>
+                            </p>
+                            <p class="mt-1 text-xs text-gray-500">
+                                {{ $document->returned_to ? 'Returned to '.$document->returned_to : 'Returned to owner' }}
+                                - {{ $document->returned_at->format('M d, Y h:i A') }}
+                            </p>
+                        @else
+                            <p class="text-xs text-gray-500">
+                                Holder: {{ $document->currentDepartment?->name ?? 'Unassigned' }}
+                                @if ($document->currentUser)
+                                    ({{ $document->currentUser->name }})
+                                @endif
+                            </p>
+                        @endif
                     </article>
 
                     <article class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
@@ -100,11 +114,39 @@
                     </div>
                 </section>
 
-                <section class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <article class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-                        <header class="border-b border-gray-200 px-4 py-3">
-                            <h3 class="font-semibold text-gray-900">Attachments</h3>
-                        </header>
+                <section x-data="{ activeTrackTab: 'attachments' }" class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                    <header class="border-b border-gray-200 px-4 py-3">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                @click="activeTrackTab = 'attachments'"
+                                @class([
+                                    'inline-flex items-center rounded-md px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition',
+                                ])
+                                :class="activeTrackTab === 'attachments' ? 'bg-indigo-600 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50'"
+                            >
+                                Attachments ({{ $document->attachments->count() }})
+                            </button>
+                            <button
+                                type="button"
+                                @click="activeTrackTab = 'copies'"
+                                class="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition"
+                                :class="activeTrackTab === 'copies' ? 'bg-indigo-600 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50'"
+                            >
+                                Active Copies ({{ $document->copies->count() }})
+                            </button>
+                            <button
+                                type="button"
+                                @click="activeTrackTab = 'custody'"
+                                class="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition"
+                                :class="activeTrackTab === 'custody' ? 'bg-indigo-600 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50'"
+                            >
+                                Current Custody ({{ $document->custodies->count() }})
+                            </button>
+                        </div>
+                    </header>
+
+                    <div x-show="activeTrackTab === 'attachments'" x-cloak>
                         <ul class="divide-y divide-gray-100">
                             @forelse ($document->attachments as $attachment)
                                 <li class="px-4 py-3 text-sm text-gray-700">
@@ -130,12 +172,9 @@
                                 <li class="px-4 py-6 text-sm text-gray-500">No attachments uploaded.</li>
                             @endforelse
                         </ul>
-                    </article>
+                    </div>
 
-                    <article class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-                        <header class="border-b border-gray-200 px-4 py-3">
-                            <h3 class="font-semibold text-gray-900">Active Copy Inventory</h3>
-                        </header>
+                    <div x-show="activeTrackTab === 'copies'" x-cloak>
                         <ul class="divide-y divide-gray-100">
                             @forelse ($document->copies as $copy)
                                 <li class="px-4 py-3 text-sm text-gray-700">
@@ -147,12 +186,9 @@
                                 <li class="px-4 py-6 text-sm text-gray-500">No copy records.</li>
                             @endforelse
                         </ul>
-                    </article>
+                    </div>
 
-                    <article class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-                        <header class="border-b border-gray-200 px-4 py-3">
-                            <h3 class="font-semibold text-gray-900">Current Custody Records</h3>
-                        </header>
+                    <div x-show="activeTrackTab === 'custody'" x-cloak>
                         <ul class="divide-y divide-gray-100">
                             @forelse ($document->custodies->sortByDesc('id') as $custody)
                                 <li class="px-4 py-3 text-sm text-gray-700">
@@ -164,7 +200,7 @@
                                 <li class="px-4 py-6 text-sm text-gray-500">No custody records.</li>
                             @endforelse
                         </ul>
-                    </article>
+                    </div>
                 </section>
             @endif
         </div>

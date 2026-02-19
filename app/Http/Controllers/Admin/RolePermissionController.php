@@ -28,6 +28,7 @@ class RolePermissionController extends Controller
     protected function capabilities(): array
     {
         return [
+            'Receive and Record Documents' => 'documents.intake',
             'View Document Lists' => 'documents.view',
             'Process Workflow' => 'documents.process',
             'Manage Documents' => 'documents.manage',
@@ -44,22 +45,27 @@ class RolePermissionController extends Controller
     {
         return [
             UserRole::Admin->value => [
+                'documents.intake',
                 'documents.view',
                 'documents.process',
                 'documents.manage',
                 'documents.export',
             ],
             UserRole::Manager->value => [
+                'documents.intake',
                 'documents.view',
                 'documents.process',
                 'documents.manage',
                 'documents.export',
             ],
             UserRole::Regular->value => [
+                'documents.intake',
                 'documents.view',
                 'documents.process',
             ],
-            UserRole::Guest->value => [],
+            UserRole::Guest->value => [
+                'documents.intake',
+            ],
         ];
     }
 }

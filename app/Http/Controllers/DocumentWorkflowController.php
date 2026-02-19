@@ -50,6 +50,9 @@ class DocumentWorkflowController extends Controller
         $copyKept = (bool) ($request->validated('copy_kept') ?? false);
         $copyStorageLocation = $request->validated('copy_storage_location');
         $copyPurpose = $request->validated('copy_purpose');
+        $dispatchMethod = $request->validated('dispatch_method');
+        $dispatchReference = $request->validated('dispatch_reference');
+        $releaseReceiptReference = $request->validated('release_receipt_reference');
 
         $this->runWorkflowAction(function () use (
             $document,
@@ -59,7 +62,10 @@ class DocumentWorkflowController extends Controller
             $forwardVersionType,
             $copyKept,
             $copyStorageLocation,
-            $copyPurpose
+            $copyPurpose,
+            $dispatchMethod,
+            $dispatchReference,
+            $releaseReceiptReference
         ): void {
             $this->workflowService->forward(
                 document: $document,
@@ -69,7 +75,10 @@ class DocumentWorkflowController extends Controller
                 forwardVersionType: $forwardVersionType,
                 copyKept: $copyKept,
                 copyStorageLocation: $copyStorageLocation,
-                copyPurpose: $copyPurpose
+                copyPurpose: $copyPurpose,
+                dispatchMethod: $dispatchMethod,
+                dispatchReference: $dispatchReference,
+                releaseReceiptReference: $releaseReceiptReference
             );
         });
 

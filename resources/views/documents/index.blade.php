@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between gap-3">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ __('Document List / Search') }}</h2>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ __('Document List') }}</h2>
             @if (auth()->user()?->canManageDocuments())
                 <span class="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-700">Manage Access</span>
             @else
@@ -12,6 +12,14 @@
 
     <div class="py-6">
         <div class="mx-auto max-w-7xl space-y-5 sm:px-6 lg:px-8">
+            @include('documents.partials.monitor-tabs')
+
+            @if (session('status'))
+                <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                    {{ session('status') }}
+                </div>
+            @endif
+
             <section class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
                 <form method="GET" action="{{ route('documents.index') }}" class="grid grid-cols-1 gap-3 md:grid-cols-6">
                     <div class="md:col-span-2">
@@ -107,9 +115,23 @@
                                     </td>
                                     <td class="px-4 py-3 text-gray-700">{{ $document->updated_at?->format('M d, Y h:i A') }}</td>
                                     <td class="px-4 py-3 text-right">
-                                        <a href="{{ route('documents.track', ['tracking_number' => $document->metadata['display_tracking'] ?? $document->tracking_number]) }}" class="inline-flex items-center rounded-md border border-gray-300 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50">
-                                            Track
-                                        </a>
+                                        <div class="inline-flex items-center gap-2">
+                                            <a href="{{ route('documents.track', ['tracking_number' => $document->metadata['display_tracking'] ?? $document->tracking_number]) }}" class="inline-flex items-center rounded-md border border-gray-300 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50">
+                                                Track
+                                            </a>
+                                            @if (auth()->user()?->canManageDocuments())
+                                                <a href="{{ route('documents.edit', $document) }}" class="inline-flex items-center rounded-md border border-indigo-300 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-700 transition hover:bg-indigo-50">
+                                                    Edit
+                                                </a>
+                                                <form method="POST" action="{{ route('documents.destroy', $document) }}" onsubmit="return confirm('Delete this document and related records? This cannot be undone.');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="inline-flex items-center rounded-md border border-rose-300 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-rose-700 transition hover:bg-rose-50">
+                                                        Delete
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @empty

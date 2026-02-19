@@ -164,6 +164,9 @@ class DocumentSplitController extends Controller
     {
         abort_if($document->current_user_id !== $user->id, 403, 'Only current holder can split this document.');
         abort_if($document->current_department_id !== $user->department_id, 403, 'You can only split documents in your current department.');
+        abort_if($document->document_case_id === null, 422, 'Parent document must belong to a case.');
+        abort_if($document->documentCase?->status !== 'open', 422, 'Case is closed. Reopen the case before splitting.');
+        abort_if($document->splitFromRelationships()->exists(), 422, 'Child documents cannot be split again.');
     }
 
     /**

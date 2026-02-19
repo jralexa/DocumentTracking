@@ -10,7 +10,19 @@
             @include('admin.users.partials.tabs')
 
             <section class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-                <form method="POST" action="{{ route('admin.users.update', $managedUser) }}" class="space-y-4">
+                <form
+                    method="POST"
+                    action="{{ route('admin.users.update', $managedUser) }}"
+                    class="space-y-4"
+                    x-data="{
+                        selectedRole: @js(old('role', $managedUser->role->value)),
+                        init() {
+                            if (this.selectedRole === 'guest') {
+                                this.$refs.departmentSelect.value = '';
+                            }
+                        }
+                    }"
+                >
                     @csrf
                     @method('PUT')
 
@@ -29,7 +41,14 @@
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div>
                             <x-input-label for="role" :value="__('Role')" />
-                            <select id="role" name="role" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                            <select
+                                id="role"
+                                name="role"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                x-model="selectedRole"
+                                @change="if (selectedRole === 'guest') { $refs.departmentSelect.value = ''; }"
+                                required
+                            >
                                 @foreach ($roles as $role)
                                     <option value="{{ $role->value }}" @selected(old('role', $managedUser->role->value) === $role->value)>{{ ucfirst($role->value) }}</option>
                                 @endforeach
@@ -39,7 +58,13 @@
 
                         <div>
                             <x-input-label for="department_id" :value="__('Department (Optional)')" />
-                            <select id="department_id" name="department_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <select
+                                id="department_id"
+                                name="department_id"
+                                x-ref="departmentSelect"
+                                x-bind:disabled="selectedRole === 'guest'"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-500"
+                            >
                                 <option value="">No Department</option>
                                 @foreach ($departments as $department)
                                     <option value="{{ $department->id }}" @selected((string) old('department_id', $managedUser->department_id) === (string) $department->id)>
@@ -47,6 +72,9 @@
                                     </option>
                                 @endforeach
                             </select>
+                            <p x-cloak x-show="selectedRole === 'guest'" class="mt-1 text-xs text-amber-700">
+                                Guest personnel accounts are intake-only and must not be assigned to a department.
+                            </p>
                             <x-input-error :messages="$errors->get('department_id')" class="mt-2" />
                         </div>
                     </div>

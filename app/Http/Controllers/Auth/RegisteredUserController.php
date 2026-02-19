@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\SystemLogService;
 use App\UserRole;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -15,6 +16,11 @@ use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
 {
+    /**
+     * Create a new controller instance.
+     */
+    public function __construct(protected SystemLogService $systemLogService) {}
+
     /**
      * Display the registration view.
      */
@@ -44,6 +50,16 @@ class RegisteredUserController extends Controller
         ]);
 
         event(new Registered($user));
+
+        $this->systemLogService->auth(
+            action: 'registration',
+            message: 'User self-registered account.',
+            user: $user,
+            request: $request,
+            context: [
+                'role' => $user->role?->value,
+            ]
+        );
 
         Auth::login($user);
 

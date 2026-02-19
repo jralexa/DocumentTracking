@@ -2,10 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\DocumentEventType;
 use App\DocumentWorkflowStatus;
+use App\Http\Requests\UpdateManagedDocumentRequest;
 use App\Models\Department;
 use App\Models\Document;
+use App\Models\User;
+use App\Services\SystemLogService;
+use App\UserRole;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -14,10 +20,18 @@ use Illuminate\View\View;
 class DocumentListController extends Controller
 {
     /**
+     * Create a new controller instance.
+     */
+    public function __construct(protected SystemLogService $systemLogService) {}
+
+    /**
      * Display searchable document listing.
      */
     public function index(Request $request): View
     {
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
         $search = trim((string) $request->query('q', ''));
         $status = $request->query('status');
         $documentType = $request->query('document_type');
@@ -29,7 +43,8 @@ class DocumentListController extends Controller
             status: $status,
             documentType: $documentType,
             ownerType: $ownerType,
-            departmentId: $departmentId
+            departmentId: $departmentId,
+            user: $user
         );
         $activeDepartments = $this->activeDepartments();
 
@@ -50,6 +65,68 @@ class DocumentListController extends Controller
     }
 
     /**
+     * Show editable document metadata for management users.
+     */
+    public function edit(Document $document): View
+    {
+        return view('documents.edit', [
+            'document' => $document,
+            'documentTypes' => $this->documentTypes(),
+            'ownerTypes' => $this->ownerTypes(),
+            'priorities' => ['low', 'normal', 'high', 'urgent'],
+        ]);
+    }
+
+    /**
+     * Update managed document metadata.
+     */
+    public function update(UpdateManagedDocumentRequest $request, Document $document): RedirectResponse
+    {
+        $payload = $this->managedDocumentPayload($request->validated());
+        $document->update($payload);
+
+        $this->systemLogService->admin(
+            action: 'document_metadata_updated',
+            message: 'Management user updated document metadata.',
+            user: $request->user(),
+            request: $request,
+            entity: $document,
+            context: [
+                'fields' => array_keys($payload),
+                'tracking' => $document->metadata['display_tracking'] ?? $document->tracking_number,
+            ]
+        );
+
+        return redirect()
+            ->route('documents.index')
+            ->with('status', 'Document updated successfully.');
+    }
+
+    /**
+     * Delete a document from management view.
+     */
+    public function destroy(Request $request, Document $document): RedirectResponse
+    {
+        $trackingNumber = $document->metadata['display_tracking'] ?? $document->tracking_number;
+        $document->delete();
+
+        $this->systemLogService->admin(
+            action: 'document_deleted',
+            message: 'Management user deleted a document.',
+            user: $request->user(),
+            request: $request,
+            context: [
+                'tracking' => $trackingNumber,
+                'document_id' => $document->id,
+            ]
+        );
+
+        return redirect()
+            ->route('documents.index')
+            ->with('status', sprintf('Document %s deleted.', $trackingNumber));
+    }
+
+    /**
      * Build document list query and return paginated records.
      */
     protected function documents(
@@ -57,10 +134,18 @@ class DocumentListController extends Controller
         mixed $status,
         mixed $documentType,
         mixed $ownerType,
-        mixed $departmentId
+        mixed $departmentId,
+        User $user
     ): LengthAwarePaginator {
         return Document::query()
             ->with(['documentCase', 'currentDepartment', 'currentUser', 'latestTransfer.toDepartment'])
+            ->when($user->hasRole(UserRole::Guest), function (Builder $query) use ($user): void {
+                $query->whereHas('events', function (Builder $eventQuery) use ($user): void {
+                    $eventQuery
+                        ->where('event_type', DocumentEventType::DocumentCreated->value)
+                        ->where('acted_by_user_id', $user->id);
+                });
+            })
             ->when($search !== '', fn (Builder $query) => $this->applySearchFilter($query, $search))
             ->when($this->hasFilter($status), fn (Builder $query) => $query->where('status', $status))
             ->when($this->hasFilter($documentType), fn (Builder $query) => $query->where('document_type', $documentType))
@@ -145,5 +230,28 @@ class DocumentListController extends Controller
     protected function ownerTypes(): array
     {
         return ['district', 'school', 'personal', 'others'];
+    }
+
+    /**
+     * Build managed update payload while normalizing dependent fields.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    protected function managedDocumentPayload(array $validated): array
+    {
+        $isReturnable = (bool) ($validated['is_returnable'] ?? false);
+
+        return [
+            'subject' => $validated['subject'],
+            'reference_number' => $validated['reference_number'] ?? null,
+            'document_type' => $validated['document_type'],
+            'owner_type' => $validated['owner_type'],
+            'owner_name' => $validated['owner_name'],
+            'priority' => $validated['priority'],
+            'due_at' => $validated['due_at'] ?? null,
+            'is_returnable' => $isReturnable,
+            'return_deadline' => $isReturnable ? ($validated['return_deadline'] ?? null) : null,
+        ];
     }
 }

@@ -32,7 +32,7 @@ test('document ability matrix follows role policy', function () {
         [UserRole::Admin, ['view' => true, 'process' => true, 'manage' => true, 'export' => true]],
         [UserRole::Manager, ['view' => true, 'process' => true, 'manage' => true, 'export' => true]],
         [UserRole::Regular, ['view' => true, 'process' => true, 'manage' => false, 'export' => false]],
-        [UserRole::Guest, ['view' => false, 'process' => false, 'manage' => false, 'export' => false]],
+        [UserRole::Guest, ['view' => true, 'process' => false, 'manage' => false, 'export' => false]],
     ];
 
     foreach ($expectedPermissionsByRole as [$role, $permissions]) {

@@ -5,6 +5,8 @@
 
     <div class="py-6">
         <div class="mx-auto max-w-7xl space-y-5 sm:px-6 lg:px-8">
+            @include('custody.partials.tabs')
+
             @if ($errors->has('release_original'))
                 <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
                     {{ $errors->first('release_original') }}
@@ -69,19 +71,28 @@
                                                     <form method="POST" action="{{ route('custody.originals.release', $record->document) }}" class="space-y-2">
                                                         @csrf
                                                         <div>
-                                                            <x-input-label :value="__('Route Original To')" />
+                                                            <x-input-label :value="__('Route Original To (Optional)')" />
                                                             <select
                                                                 name="to_department_id"
                                                                 class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                                                required
                                                             >
-                                                                <option value="">Select Department</option>
+                                                                <option value="">No department routing</option>
                                                                 @foreach ($activeDepartments as $department)
                                                                     @if ($department->id !== $record->department_id)
                                                                         <option value="{{ $department->id }}">{{ $department->name }}</option>
                                                                     @endif
                                                                 @endforeach
                                                             </select>
+                                                            <p class="mt-1 text-xs text-gray-500">Choose a destination only when the original must continue internal routing.</p>
+                                                        </div>
+                                                        <div>
+                                                            <x-input-label :value="__('Release To (Required if no routing department)')" />
+                                                            <x-text-input
+                                                                name="release_to"
+                                                                type="text"
+                                                                class="mt-1 block w-full text-sm"
+                                                                placeholder="e.g. Document owner / external recipient"
+                                                            />
                                                         </div>
                                                         <div class="rounded-md border border-gray-200 bg-gray-50 p-2">
                                                             <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-700">

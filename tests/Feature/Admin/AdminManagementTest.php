@@ -19,6 +19,7 @@ test('admin can access administration pages', function () {
     $this->actingAs($admin)->get(route('admin.departments.index'))->assertSuccessful();
     $this->actingAs($admin)->get(route('admin.users.index'))->assertSuccessful();
     $this->actingAs($admin)->get(route('admin.roles-permissions.index'))->assertSuccessful();
+    $this->actingAs($admin)->get(route('admin.system-logs.index'))->assertSuccessful();
 });
 
 test('non admin cannot access administration pages', function () {
@@ -31,6 +32,7 @@ test('non admin cannot access administration pages', function () {
     $this->actingAs($manager)->get(route('admin.departments.index'))->assertForbidden();
     $this->actingAs($manager)->get(route('admin.users.index'))->assertForbidden();
     $this->actingAs($manager)->get(route('admin.roles-permissions.index'))->assertForbidden();
+    $this->actingAs($manager)->get(route('admin.system-logs.index'))->assertForbidden();
 });
 
 test('admin can create user with role and department', function () {
@@ -126,4 +128,54 @@ test('admin cannot change user department while user has active for action workl
     $response->assertSessionHasErrors('department_id');
     $response->assertSessionHas('department_reassignment_blockers');
     expect($managedUser->fresh()->department_id)->toBe($oldDepartment->id);
+});
+
+test('admin cannot assign a department to guest personnel account on create', function () {
+    Notification::fake();
+
+    $adminDepartment = Department::factory()->create();
+    $targetDepartment = Department::factory()->create();
+
+    $admin = User::factory()->create([
+        'role' => UserRole::Admin,
+        'department_id' => $adminDepartment->id,
+    ]);
+
+    $response = $this->actingAs($admin)->post(route('admin.users.store'), [
+        'name' => 'Guest Personnel',
+        'email' => 'guest.personnel@example.com',
+        'role' => UserRole::Guest->value,
+        'department_id' => $targetDepartment->id,
+    ]);
+
+    $response->assertSessionHasErrors('department_id');
+    expect(User::query()->where('email', 'guest.personnel@example.com')->exists())->toBeFalse();
+});
+
+test('updating a user to guest role forces department to null', function () {
+    $adminDepartment = Department::factory()->create();
+    $targetDepartment = Department::factory()->create();
+
+    $admin = User::factory()->create([
+        'role' => UserRole::Admin,
+        'department_id' => $adminDepartment->id,
+    ]);
+
+    $managedUser = User::factory()->create([
+        'role' => UserRole::Regular,
+        'department_id' => $targetDepartment->id,
+    ]);
+
+    $response = $this->actingAs($admin)->put(route('admin.users.update', $managedUser), [
+        'name' => $managedUser->name,
+        'email' => $managedUser->email,
+        'role' => UserRole::Guest->value,
+        'department_id' => '',
+    ]);
+
+    $response->assertRedirect(route('admin.users.index'));
+
+    $managedUser->refresh();
+    expect($managedUser->role)->toBe(UserRole::Guest);
+    expect($managedUser->department_id)->toBeNull();
 });

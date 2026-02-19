@@ -33,5 +33,22 @@ class DatabaseSeeder extends Seeder
                 'department_id' => $recordsDepartment?->id,
             ]
         );
+
+        Department::query()
+            ->orderBy('id')
+            ->get()
+            ->each(function (Department $department): void {
+                $departmentCode = strtolower($department->code);
+
+                User::query()->updateOrCreate(
+                    ['email' => $departmentCode.'.user@example.com'],
+                    [
+                        'name' => $department->name.' User',
+                        'password' => 'password',
+                        'role' => UserRole::Regular,
+                        'department_id' => $department->id,
+                    ]
+                );
+            });
     }
 }

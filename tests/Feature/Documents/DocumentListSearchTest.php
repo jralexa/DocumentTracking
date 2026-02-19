@@ -1,5 +1,6 @@
 <?php
 
+use App\DocumentEventType;
 use App\DocumentWorkflowStatus;
 use App\Models\Department;
 use App\Models\Document;
@@ -17,17 +18,63 @@ test('regular user can access document list search page', function () {
     $this->actingAs($regular)
         ->get(route('documents.index'))
         ->assertSuccessful()
-        ->assertSee('Document List / Search');
+        ->assertSee('Document List');
 });
 
-test('guest user cannot access document list search page', function () {
+test('guest user can access document list search page', function () {
     $guest = User::factory()->create([
         'role' => UserRole::Guest,
     ]);
 
     $this->actingAs($guest)
         ->get(route('documents.index'))
-        ->assertForbidden();
+        ->assertSuccessful()
+        ->assertSee('Document List');
+});
+
+test('guest user only sees documents created by the same guest account', function () {
+    $department = Department::factory()->create();
+    $guest = User::factory()->create([
+        'role' => UserRole::Guest,
+        'department_id' => $department->id,
+    ]);
+    $otherGuest = User::factory()->create([
+        'role' => UserRole::Guest,
+        'department_id' => $department->id,
+    ]);
+    $case = DocumentCase::factory()->create();
+
+    $visibleDocument = Document::factory()->create([
+        'document_case_id' => $case->id,
+        'tracking_number' => '260217901',
+        'subject' => 'Guest Visible Document',
+    ]);
+    $hiddenDocument = Document::factory()->create([
+        'document_case_id' => $case->id,
+        'tracking_number' => '260217902',
+        'subject' => 'Guest Hidden Document',
+    ]);
+
+    $visibleDocument->events()->create([
+        'acted_by_user_id' => $guest->id,
+        'event_type' => DocumentEventType::DocumentCreated,
+        'context' => 'creation',
+        'message' => 'Document created through add document form.',
+        'occurred_at' => now(),
+    ]);
+    $hiddenDocument->events()->create([
+        'acted_by_user_id' => $otherGuest->id,
+        'event_type' => DocumentEventType::DocumentCreated,
+        'context' => 'creation',
+        'message' => 'Document created through add document form.',
+        'occurred_at' => now(),
+    ]);
+
+    $response = $this->actingAs($guest)->get(route('documents.index'));
+
+    $response->assertSuccessful();
+    $response->assertSee($visibleDocument->tracking_number);
+    $response->assertDontSee($hiddenDocument->tracking_number);
 });
 
 test('document list search filters by tracking and subject', function () {

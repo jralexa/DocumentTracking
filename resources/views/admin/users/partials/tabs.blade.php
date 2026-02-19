@@ -8,7 +8,7 @@
                 'border border-gray-300 text-gray-700 hover:bg-gray-100' => ! request()->routeIs('admin.users.*'),
             ])
         >
-            User Management
+            Users
         </a>
         <a
             href="{{ route('admin.roles-permissions.index') }}"
@@ -18,7 +18,7 @@
                 'border border-gray-300 text-gray-700 hover:bg-gray-100' => ! request()->routeIs('admin.roles-permissions.*'),
             ])
         >
-            Roles / Permissions
+            Access Management
         </a>
     </nav>
 </section>

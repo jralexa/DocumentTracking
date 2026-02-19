@@ -6,7 +6,9 @@
     </x-slot>
 
     <div class="py-6">
-        <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-7xl space-y-5 sm:px-6 lg:px-8">
+            @include('documents.partials.monitor-tabs')
+
             <section class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200 text-sm">

@@ -19,7 +19,10 @@ class DocumentCustodyService
     /**
      * Create a new service instance.
      */
-    public function __construct(protected DocumentAuditService $auditService) {}
+    public function __construct(
+        protected DocumentAuditService $auditService,
+        protected SystemLogService $systemLogService
+    ) {}
 
     /**
      * Assign current original custody for a document.
@@ -79,6 +82,17 @@ class DocumentCustodyService
                 ]
             );
 
+            $this->systemLogService->custody(
+                action: 'original_custody_assigned',
+                message: 'Original custody updated.',
+                user: $custodian,
+                entity: $document,
+                context: [
+                    'department_id' => $department?->id,
+                    'custody_id' => $custody->id,
+                ]
+            );
+
             return $custody;
         });
     }
@@ -134,16 +148,40 @@ class DocumentCustodyService
             ]
         );
 
+        $this->systemLogService->custody(
+            action: 'derivative_custody_recorded',
+            message: 'Derivative custody record added.',
+            user: $custodian,
+            entity: $document,
+            context: [
+                'department_id' => $department?->id,
+                'version_type' => $versionType->value,
+                'custody_id' => $custody->id,
+            ]
+        );
+
         return $custody;
     }
 
     /**
      * Mark a returnable document as returned and close original custody.
      */
-    public function markOriginalReturned(Document $document, string $returnedTo, ?Carbon $returnedAt = null): void
+    public function markOriginalReturned(Document $document, User $user, string $returnedTo, ?Carbon $returnedAt = null): void
     {
         if (! $document->is_returnable) {
             $this->throwInvalidCustodyAction('This document is not marked as returnable.');
+        }
+
+        if ($user->department_id === null) {
+            $this->throwInvalidCustodyAction('You are not assigned to a department.');
+        }
+
+        if ($document->original_current_department_id === null) {
+            $this->throwInvalidCustodyAction('No active original custody is currently recorded.');
+        }
+
+        if ((int) $document->original_current_department_id !== (int) $user->department_id) {
+            $this->throwInvalidCustodyAction('Only the current original holder department can mark this document as returned.');
         }
 
         if (trim($returnedTo) === '') {
@@ -154,7 +192,7 @@ class DocumentCustodyService
             $this->throwInvalidCustodyAction('This document has already been marked as returned.');
         }
 
-        DB::transaction(function () use ($document, $returnedTo, $returnedAt): void {
+        DB::transaction(function () use ($document, $user, $returnedTo, $returnedAt): void {
             $timestamp = $returnedAt ?? now();
 
             $document->custodies()
@@ -181,11 +219,25 @@ class DocumentCustodyService
             $this->auditService->recordEvent(
                 document: $document,
                 eventType: DocumentEventType::CustodyReturned,
+                actedBy: $user,
                 message: 'Original document returned to owner.',
                 context: 'custody',
                 payload: [
                     'returned_to' => $returnedTo,
                     'returned_at' => $timestamp->toIso8601String(),
+                    'from_department_id' => $user->department_id,
+                ]
+            );
+
+            $this->systemLogService->custody(
+                action: 'original_marked_returned',
+                message: 'Original document marked as returned.',
+                user: $user,
+                entity: $document,
+                context: [
+                    'returned_to' => $returnedTo,
+                    'returned_at' => $timestamp->toIso8601String(),
+                    'from_department_id' => $user->department_id,
                 ]
             );
         });
@@ -296,6 +348,136 @@ class DocumentCustodyService
                     context: 'custody'
                 );
             }
+
+            $this->systemLogService->custody(
+                action: 'original_released_to_department',
+                message: 'Original released to another department.',
+                user: $user,
+                entity: $document,
+                context: [
+                    'from_department_id' => $fromDepartment?->id,
+                    'to_department_id' => $toDepartment->id,
+                    'copy_kept' => $copyKept,
+                ]
+            );
+        });
+    }
+
+    /**
+     * Release original custody without routing to another department.
+     */
+    public function releaseOriginalWithoutRouting(
+        Document $document,
+        User $user,
+        string $releaseTo,
+        ?string $remarks = null,
+        bool $copyKept = false,
+        ?string $copyStorageLocation = null,
+        ?string $copyPurpose = null
+    ): void {
+        if ($user->department_id === null) {
+            $this->throwInvalidCustodyAction('You are not assigned to a department.');
+        }
+
+        if ($document->original_current_department_id === null) {
+            $this->throwInvalidCustodyAction('No active original custody is currently recorded.');
+        }
+
+        if ((int) $document->original_current_department_id !== (int) $user->department_id) {
+            $this->throwInvalidCustodyAction('Only the current original holder department can release this original.');
+        }
+
+        if (trim($releaseTo) === '') {
+            $this->throwInvalidCustodyAction('Release-to details are required when not routing to a department.');
+        }
+
+        if ($copyKept && ($copyStorageLocation === null || trim($copyStorageLocation) === '')) {
+            $this->throwInvalidCustodyAction('Storage location is required when keeping a copy.');
+        }
+
+        $fromDepartment = Department::query()->find($document->original_current_department_id);
+
+        DB::transaction(function () use (
+            $document,
+            $user,
+            $releaseTo,
+            $remarks,
+            $copyKept,
+            $copyStorageLocation,
+            $copyPurpose,
+            $fromDepartment
+        ): void {
+            $timestamp = now();
+
+            $document->custodies()
+                ->where('version_type', DocumentVersionType::Original->value)
+                ->where('is_current', true)
+                ->update([
+                    'is_current' => false,
+                    'status' => 'released',
+                    'released_at' => $timestamp,
+                ]);
+
+            if ($copyKept) {
+                $this->recordKeptCopy(
+                    document: $document,
+                    user: $user,
+                    storageLocation: $copyStorageLocation,
+                    purpose: $copyPurpose
+                );
+
+                $this->recordDerivativeCustody(
+                    document: $document,
+                    versionType: DocumentVersionType::Photocopy,
+                    department: $fromDepartment,
+                    custodian: $user,
+                    physicalLocation: $copyStorageLocation,
+                    storageReference: $copyStorageLocation,
+                    purpose: $copyPurpose ?? 'Retained departmental photocopy while releasing original.',
+                    notes: 'Copy retained during original release without department routing.'
+                );
+            }
+
+            $document->forceFill([
+                'original_current_department_id' => null,
+                'original_custodian_user_id' => null,
+                'original_physical_location' => null,
+            ])->save();
+
+            $this->auditService->recordEvent(
+                document: $document,
+                eventType: DocumentEventType::CustodyReturned,
+                actedBy: $user,
+                message: 'Original released without department routing.',
+                context: 'custody',
+                payload: [
+                    'from_department_id' => $fromDepartment?->id,
+                    'release_to' => $releaseTo,
+                    'copy_kept' => $copyKept,
+                    'copy_storage_location' => $copyStorageLocation,
+                ]
+            );
+
+            if ($remarks !== null && $remarks !== '') {
+                $this->auditService->addRemark(
+                    document: $document,
+                    remark: $remarks,
+                    user: $user,
+                    context: 'custody'
+                );
+            }
+
+            $this->systemLogService->custody(
+                action: 'original_released_without_routing',
+                message: 'Original released without department routing.',
+                user: $user,
+                entity: $document,
+                context: [
+                    'from_department_id' => $fromDepartment?->id,
+                    'release_to' => $releaseTo,
+                    'copy_kept' => $copyKept,
+                ]
+            );
         });
     }
 

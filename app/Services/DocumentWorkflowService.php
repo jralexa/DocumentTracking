@@ -23,7 +23,8 @@ class DocumentWorkflowService
      */
     public function __construct(
         protected DocumentAuditService $auditService,
-        protected DocumentCustodyService $custodyService
+        protected DocumentCustodyService $custodyService,
+        protected SystemLogService $systemLogService
     ) {}
 
     /**
@@ -62,6 +63,17 @@ class DocumentWorkflowService
                 transfer: $latestTransfer
             );
 
+            $this->systemLogService->workflow(
+                action: 'document_accepted',
+                message: 'Document accepted into queue.',
+                user: $user,
+                entity: $document,
+                context: [
+                    'transfer_id' => $latestTransfer->id,
+                    'to_department_id' => $latestTransfer->to_department_id,
+                ]
+            );
+
         });
 
     }
@@ -80,7 +92,10 @@ class DocumentWorkflowService
         ?DocumentVersionType $forwardVersionType = null,
         bool $copyKept = false,
         ?string $copyStorageLocation = null,
-        ?string $copyPurpose = null
+        ?string $copyPurpose = null,
+        ?string $dispatchMethod = null,
+        ?string $dispatchReference = null,
+        ?string $releaseReceiptReference = null
     ): void {
         $resolvedForwardVersionType = $forwardVersionType ?? DocumentVersionType::Original;
 
@@ -95,7 +110,10 @@ class DocumentWorkflowService
             $resolvedForwardVersionType,
             $copyKept,
             $copyStorageLocation,
-            $copyPurpose
+            $copyPurpose,
+            $dispatchMethod,
+            $dispatchReference,
+            $releaseReceiptReference
         ): void {
             $transfer = $document->transfers()->create([
                 'from_department_id' => $document->current_department_id,
@@ -107,6 +125,9 @@ class DocumentWorkflowService
                 'copy_kept' => $copyKept,
                 'copy_storage_location' => $copyStorageLocation,
                 'copy_purpose' => $copyPurpose,
+                'dispatch_method' => $dispatchMethod,
+                'dispatch_reference' => $dispatchReference,
+                'release_receipt_reference' => $releaseReceiptReference,
                 'forwarded_at' => now(),
             ]);
 
@@ -170,6 +191,9 @@ class DocumentWorkflowService
                     'forward_version_type' => $resolvedForwardVersionType->value,
                     'copy_kept' => $copyKept,
                     'copy_storage_location' => $copyStorageLocation,
+                    'dispatch_method' => $dispatchMethod,
+                    'dispatch_reference' => $dispatchReference,
+                    'release_receipt_reference' => $releaseReceiptReference,
                 ]
             );
 
@@ -182,6 +206,22 @@ class DocumentWorkflowService
                     transfer: $transfer
                 );
             }
+
+            $this->systemLogService->workflow(
+                action: 'document_forwarded',
+                message: 'Document forwarded to another department.',
+                user: $user,
+                entity: $document,
+                context: [
+                    'transfer_id' => $transfer->id,
+                    'from_department_id' => $transfer->from_department_id,
+                    'to_department_id' => $transfer->to_department_id,
+                    'forward_version_type' => $resolvedForwardVersionType->value,
+                    'copy_kept' => $copyKept,
+                    'dispatch_method' => $dispatchMethod,
+                    'dispatch_reference' => $dispatchReference,
+                ]
+            );
 
         });
 
@@ -238,6 +278,18 @@ class DocumentWorkflowService
                 transfer: $transfer
             );
 
+            $this->systemLogService->workflow(
+                action: 'document_recalled',
+                message: 'Outgoing transfer recalled before acceptance.',
+                user: $user,
+                entity: $document,
+                context: [
+                    'transfer_id' => $transfer->id,
+                    'from_department_id' => $transfer->from_department_id,
+                    'to_department_id' => $transfer->to_department_id,
+                ]
+            );
+
         });
 
     }
@@ -282,6 +334,17 @@ class DocumentWorkflowService
                     context: 'workflow'
                 );
             }
+
+            $this->systemLogService->workflow(
+                action: 'document_completed',
+                message: 'Document marked as finished.',
+                user: $user,
+                entity: $document,
+                context: [
+                    'completed_at' => $timestamp->toIso8601String(),
+                    'department_id' => $document->current_department_id,
+                ]
+            );
         });
     }
 

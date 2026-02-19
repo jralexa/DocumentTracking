@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\SystemLogService;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,11 @@ use Illuminate\View\View;
 
 class NewPasswordController extends Controller
 {
+    /**
+     * Create a new controller instance.
+     */
+    public function __construct(protected SystemLogService $systemLogService) {}
+
     /**
      * Display the password reset view.
      */
@@ -41,11 +47,18 @@ class NewPasswordController extends Controller
         // database. Otherwise we will parse the error and return the response.
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
-            function (User $user) use ($request) {
+            function (User $user) use ($request): void {
                 $user->forceFill([
                     'password' => Hash::make($request->password),
                     'remember_token' => Str::random(60),
                 ])->save();
+
+                $this->systemLogService->auth(
+                    action: 'password_reset',
+                    message: 'User password reset completed via reset link.',
+                    user: $user,
+                    request: $request
+                );
 
                 event(new PasswordReset($user));
             }

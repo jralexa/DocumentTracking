@@ -114,9 +114,13 @@ class DocumentCustodyController extends Controller
         Document $document,
         DocumentCustodyService $custodyService
     ): RedirectResponse {
+        $user = $request->user();
+        abort_unless($user !== null, 403);
+
         try {
             $custodyService->markOriginalReturned(
                 document: $document,
+                user: $user,
                 returnedTo: $request->validated('returned_to'),
                 returnedAt: $this->resolveReturnedAt($request)
             );
@@ -140,7 +144,11 @@ class DocumentCustodyController extends Controller
         $user = $request->user();
         abort_unless($user !== null, 403);
 
-        $toDepartment = Department::query()->findOrFail((int) $request->validated('to_department_id'));
+        $toDepartmentId = $request->validated('to_department_id');
+        $toDepartment = $toDepartmentId !== null
+            ? Department::query()->findOrFail((int) $toDepartmentId)
+            : null;
+        $releaseTo = $request->validated('release_to');
         $originalStorageLocation = $request->validated('original_storage_location');
         $remarks = $request->validated('remarks');
         $copyKept = (bool) ($request->validated('copy_kept') ?? false);
@@ -148,16 +156,28 @@ class DocumentCustodyController extends Controller
         $copyPurpose = $request->validated('copy_purpose');
 
         try {
-            $custodyService->releaseOriginalToDepartment(
-                document: $document,
-                user: $user,
-                toDepartment: $toDepartment,
-                originalStorageLocation: $originalStorageLocation,
-                remarks: $remarks,
-                copyKept: $copyKept,
-                copyStorageLocation: $copyStorageLocation,
-                copyPurpose: $copyPurpose
-            );
+            if ($toDepartment !== null) {
+                $custodyService->releaseOriginalToDepartment(
+                    document: $document,
+                    user: $user,
+                    toDepartment: $toDepartment,
+                    originalStorageLocation: $originalStorageLocation,
+                    remarks: $remarks,
+                    copyKept: $copyKept,
+                    copyStorageLocation: $copyStorageLocation,
+                    copyPurpose: $copyPurpose
+                );
+            } else {
+                $custodyService->releaseOriginalWithoutRouting(
+                    document: $document,
+                    user: $user,
+                    releaseTo: (string) $releaseTo,
+                    remarks: $remarks,
+                    copyKept: $copyKept,
+                    copyStorageLocation: $copyStorageLocation,
+                    copyPurpose: $copyPurpose
+                );
+            }
         } catch (InvalidDocumentCustodyActionException $exception) {
             throw ValidationException::withMessages([
                 'release_original' => $exception->getMessage(),

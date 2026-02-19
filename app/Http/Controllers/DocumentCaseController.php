@@ -7,7 +7,10 @@ use App\DocumentWorkflowStatus;
 use App\Http\Requests\CaseTimelineFilterRequest;
 use App\Models\DocumentCase;
 use App\Models\DocumentEvent;
+use App\Models\User;
+use App\UserRole;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -21,7 +24,8 @@ class DocumentCaseController extends Controller
      */
     public function index(Request $request): View
     {
-        $cases = $this->cases();
+        $user = $this->resolveAuthenticatedUser($request);
+        $cases = $this->cases($user);
 
         return view('cases.index', [
             'cases' => $cases,
@@ -33,6 +37,8 @@ class DocumentCaseController extends Controller
      */
     public function show(CaseTimelineFilterRequest $request, DocumentCase $documentCase): View
     {
+        $user = $this->resolveAuthenticatedUser($request);
+        $this->ensureCaseVisibleToUser($documentCase, $user);
         $this->loadCaseDocuments($documentCase);
         $statusSummary = $this->statusSummary($documentCase->documents);
         $departmentSummary = $this->departmentSummary($documentCase->documents);
@@ -60,14 +66,89 @@ class DocumentCaseController extends Controller
     }
 
     /**
+     * Close an open case when all linked documents are finished.
+     */
+    public function close(Request $request, DocumentCase $documentCase): RedirectResponse
+    {
+        $user = $this->resolveAuthenticatedUser($request);
+        abort_unless($user->canManageDocuments(), 403);
+
+        if ($documentCase->status === 'closed') {
+            return back()->with('status', 'Case is already closed.');
+        }
+
+        $hasOpenDocuments = $documentCase->documents()
+            ->where('status', '!=', DocumentWorkflowStatus::Finished->value)
+            ->exists();
+
+        if ($hasOpenDocuments) {
+            return back()->withErrors([
+                'case' => 'Cannot close case while there are open documents.',
+            ]);
+        }
+
+        $documentCase->update([
+            'status' => 'closed',
+            'closed_at' => now(),
+        ]);
+
+        return back()->with('status', 'Case closed successfully.');
+    }
+
+    /**
+     * Reopen a closed case to allow new linked documents.
+     */
+    public function reopen(Request $request, DocumentCase $documentCase): RedirectResponse
+    {
+        $user = $this->resolveAuthenticatedUser($request);
+        abort_unless($user->canManageDocuments(), 403);
+
+        if ($documentCase->status === 'open') {
+            return back()->with('status', 'Case is already open.');
+        }
+
+        $documentCase->update([
+            'status' => 'open',
+            'closed_at' => null,
+        ]);
+
+        return back()->with('status', 'Case reopened successfully.');
+    }
+
+    /**
      * Get paginated case listing.
      */
-    protected function cases(): LengthAwarePaginator
+    protected function cases(User $user): LengthAwarePaginator
     {
         return DocumentCase::query()
+            ->when(
+                $user->hasRole(UserRole::Guest),
+                fn ($query) => $query->where('opened_by_user_id', $user->id)
+            )
             ->withCount('documents')
             ->orderByDesc('opened_at')
             ->paginate(15);
+    }
+
+    /**
+     * Ensure authenticated user can access the selected case.
+     */
+    protected function ensureCaseVisibleToUser(DocumentCase $documentCase, User $user): void
+    {
+        if ($user->hasRole(UserRole::Guest) && $documentCase->opened_by_user_id !== $user->id) {
+            abort(403);
+        }
+    }
+
+    /**
+     * Resolve authenticated user from request context.
+     */
+    protected function resolveAuthenticatedUser(Request $request): User
+    {
+        $user = $request->user();
+        abort_unless($user !== null, 403);
+
+        return $user;
     }
 
     /**

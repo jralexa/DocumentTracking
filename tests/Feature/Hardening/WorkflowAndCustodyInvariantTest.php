@@ -91,22 +91,27 @@ test('cannot assign original custody when custodian does not belong to target de
 
 test('cannot mark non returnable document as returned', function () {
     $service = app(DocumentCustodyService::class);
+    $department = Department::factory()->create();
+    $user = User::factory()->create(['department_id' => $department->id]);
     $document = Document::factory()->create(['is_returnable' => false]);
 
     $this->expectException(InvalidDocumentCustodyActionException::class);
 
-    $service->markOriginalReturned($document, 'Owner Name');
+    $service->markOriginalReturned($document, $user, 'Owner Name');
 });
 
 test('cannot mark document returned twice', function () {
     $service = app(DocumentCustodyService::class);
+    $department = Department::factory()->create();
+    $user = User::factory()->create(['department_id' => $department->id]);
     $document = Document::factory()->create([
         'is_returnable' => true,
         'returned_at' => now()->subDay(),
         'returned_to' => 'Owner Name',
+        'original_current_department_id' => $department->id,
     ]);
 
     $this->expectException(InvalidDocumentCustodyActionException::class);
 
-    $service->markOriginalReturned($document, 'Owner Name');
+    $service->markOriginalReturned($document, $user, 'Owner Name');
 });
