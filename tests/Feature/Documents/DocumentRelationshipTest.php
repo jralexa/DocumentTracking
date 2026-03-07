@@ -22,21 +22,6 @@ test('merge creates source to target merged into relationships', function () {
     expect(DocumentRelationship::query()->where('source_document_id', $sourceB->id)->where('related_document_id', $target->id)->exists())->toBeTrue();
 });
 
-test('split creates child to parent split from relationships', function () {
-    $service = app(DocumentRelationshipService::class);
-    $actor = User::factory()->create();
-    $parent = Document::factory()->create();
-    $childA = Document::factory()->create();
-    $childB = Document::factory()->create();
-
-    $relationships = $service->splitFrom($parent, [$childA, $childB], $actor, 'Split for processing');
-
-    expect($relationships)->toHaveCount(2);
-    expect(DocumentRelationship::query()->where('relation_type', DocumentRelationshipType::SplitFrom->value)->count())->toBe(2);
-    expect(DocumentRelationship::query()->where('source_document_id', $childA->id)->where('related_document_id', $parent->id)->exists())->toBeTrue();
-    expect(DocumentRelationship::query()->where('source_document_id', $childB->id)->where('related_document_id', $parent->id)->exists())->toBeTrue();
-});
-
 test('attach creates attached to relationships', function () {
     $service = app(DocumentRelationshipService::class);
     $actor = User::factory()->create();
@@ -129,5 +114,4 @@ test('document outgoing and incoming relationship helpers resolve records', func
     expect($source->outgoingRelationships()->count())->toBe(1);
     expect($target->incomingRelationships()->count())->toBe(1);
     expect($source->mergedIntoRelationships()->count())->toBe(1);
-    expect($source->splitFromRelationships()->count())->toBe(0);
 });

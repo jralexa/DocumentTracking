@@ -35,7 +35,7 @@
         $documentItems[] = ['label' => 'Add Document', 'href' => $createDocumentRoute, 'active' => request()->routeIs('documents.create')];
     }
     if ($canProcessDocuments && $queueRoute !== null) {
-        $documentItems[] = ['label' => 'Process Documents', 'href' => $queueRoute, 'active' => request()->routeIs('documents.queues.*') || request()->routeIs('documents.split.*')];
+        $documentItems[] = ['label' => 'Process Documents', 'href' => $queueRoute, 'active' => request()->routeIs('documents.queues.*')];
     }
     $monitorRoute = $trackDocumentRoute ?? $documentListRoute ?? $casesIndexRoute;
     if ($monitorRoute !== null) {

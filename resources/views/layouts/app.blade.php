@@ -15,8 +15,14 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased">
-        <x-flash-toast :message="session('status')" type="success" />
-        <x-flash-toast :message="session('intake_notice')" type="info" />
+        @php $toastIndex = 0; @endphp
+        @if (session('status'))
+            <x-flash-toast :message="session('status')" type="success" :stack-index="$toastIndex" />
+            @php $toastIndex++; @endphp
+        @endif
+        @if (session('intake_notice'))
+            <x-flash-toast :message="session('intake_notice')" type="info" :stack-index="$toastIndex" />
+        @endif
 
         <div
             x-data="{ sidebarOpen: false, sidebarCollapsed: false }"

@@ -1,6 +1,7 @@
 @props([
     'message' => null,
     'type' => 'success',
+    'stackIndex' => 0,
 ])
 
 @php
@@ -26,6 +27,7 @@
     ];
 
     $style = $styleByType[$type] ?? $styleByType['success'];
+    $normalizedStackIndex = max(0, (int) $stackIndex);
 @endphp
 
 @if ($shouldRender)
@@ -39,7 +41,8 @@
         x-transition:leave="transform ease-in duration-200"
         x-transition:leave-start="opacity-100"
         x-transition:leave-end="translate-y-2 opacity-0"
-        class="pointer-events-auto fixed bottom-16 left-1/2 z-[70] w-full max-w-sm -translate-x-1/2 px-3"
+        class="pointer-events-auto fixed left-1/2 z-[70] w-full max-w-sm -translate-x-1/2 px-3"
+        style="bottom: calc(4rem + {{ $normalizedStackIndex }} * 5rem);"
     >
         <div class="rounded-lg border shadow-lg {{ $style['container'] }}">
             <div class="flex items-start gap-3 px-4 py-3">

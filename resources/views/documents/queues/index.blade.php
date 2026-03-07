@@ -92,27 +92,9 @@
                                         <td class="px-4 py-3 text-gray-700">{{ $document->due_at?->format('M d, Y') ?? '-' }}</td>
                                         <td class="px-4 py-3 text-left text-gray-700">
                                             @php
-                                                $splitFromParent = $document->outgoingRelationships
-                                                    ->first(fn ($relationship) => $relationship->relation_type->value === 'split_from');
-                                                $isParentOfSplit = $document->incomingRelationships
-                                                    ->contains(fn ($relationship) => $relationship->relation_type->value === 'split_from');
-                                                $parentTracking = $splitFromParent?->relatedDocument?->metadata['display_tracking']
-                                                    ?? $splitFromParent?->relatedDocument?->tracking_number;
                                                 $isCaseLinked = ($document->documentCase?->documents_count ?? 0) > 1;
-                                                $isCaseClosed = ($document->documentCase?->status ?? 'open') !== 'open';
-                                                $canSplitDocument = ! $splitFromParent && ! $isCaseClosed;
                                             @endphp
-                                            @if ($splitFromParent)
-                                                <span class="inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700">
-                                                    Child
-                                                </span>
-                                                <p class="mt-1 text-xs text-gray-500">of {{ $parentTracking ?? '-' }}</p>
-                                            @elseif ($isParentOfSplit)
-                                                <span class="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700">
-                                                    Parent
-                                                </span>
-                                                <p class="mt-1 text-xs text-gray-500">Split Source</p>
-                                            @elseif ($isCaseLinked)
+                                            @if ($isCaseLinked)
                                                 <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
                                                     Case-linked
                                                 </span>
@@ -123,21 +105,6 @@
                                         </td>
                                         <td class="px-4 py-3 text-right">
                                             <div x-data="{ routeOpen: false, finishOpen: false }" class="relative inline-flex items-center gap-2">
-                                                @if ($canSplitDocument)
-                                                    <a
-                                                        href="{{ route('documents.split.create', $document) }}"
-                                                        class="inline-flex items-center rounded-md border border-gray-300 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50"
-                                                    >
-                                                        Split
-                                                    </a>
-                                                @else
-                                                    <span
-                                                        class="inline-flex cursor-not-allowed items-center rounded-md border border-gray-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-400"
-                                                        title="{{ $isCaseClosed ? 'Case is closed. Reopen case before split.' : 'Child document cannot be split again.' }}"
-                                                    >
-                                                        Split
-                                                    </span>
-                                                @endif
                                                 <button
                                                     type="button"
                                                     @click="routeOpen = !routeOpen; finishOpen = false"

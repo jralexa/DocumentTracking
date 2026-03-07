@@ -240,14 +240,6 @@ class Document extends Model
     }
 
     /**
-     * Get split relationships where this document was split from another.
-     */
-    public function splitFromRelationships(): HasMany
-    {
-        return $this->outgoingRelationships()->where('relation_type', DocumentRelationshipType::SplitFrom->value);
-    }
-
-    /**
      * Scope a query to incoming queue records for the given user.
      */
     public function scopeForIncomingQueue(Builder $query, User $user): Builder

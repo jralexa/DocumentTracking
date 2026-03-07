@@ -103,33 +103,6 @@ class DocumentRelationshipService
     }
 
     /**
-     * Mark child documents as split from a parent document.
-     *
-     * @param  iterable<Document>  $childDocuments
-     * @return array<int, DocumentRelationship>
-     */
-    public function splitFrom(
-        Document $parentDocument,
-        iterable $childDocuments,
-        ?User $createdBy = null,
-        ?string $notes = null
-    ): array {
-        $relationships = [];
-
-        foreach ($childDocuments as $childDocument) {
-            $relationships[] = $this->link(
-                sourceDocument: $childDocument,
-                relatedDocument: $parentDocument,
-                relationType: DocumentRelationshipType::SplitFrom,
-                createdBy: $createdBy,
-                notes: $notes
-            );
-        }
-
-        return $relationships;
-    }
-
-    /**
      * Attach supporting documents to a parent document.
      *
      * @param  iterable<Document>  $attachmentDocuments

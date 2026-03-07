@@ -222,23 +222,7 @@
                                             @endif
                                         </td>
                                         <td class="px-4 py-3 text-gray-700">
-                                            @php
-                                                $splitFromParent = $document->outgoingRelationships
-                                                    ->first(fn ($rel) => $rel->relation_type->value === 'split_from');
-                                                $isParentOfSplit = $document->incomingRelationships
-                                                    ->contains(fn ($rel) => $rel->relation_type->value === 'split_from');
-                                            @endphp
-                                            @if ($splitFromParent)
-                                                <span class="text-xs font-semibold uppercase tracking-wide text-indigo-700">
-                                                    Child of {{ $splitFromParent->relatedDocument?->tracking_number }}
-                                                </span>
-                                            @elseif ($isParentOfSplit)
-                                                <span class="text-xs font-semibold uppercase tracking-wide text-indigo-700">
-                                                    Parent (Split Source)
-                                                </span>
-                                            @else
-                                                <span class="text-xs text-gray-500">-</span>
-                                            @endif
+                                            <span class="text-xs text-gray-500">-</span>
                                         </td>
                                     </tr>
                                 @empty

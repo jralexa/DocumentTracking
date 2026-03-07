@@ -24,7 +24,6 @@ class DocumentRelationshipFactory extends Factory
             'related_document_id' => Document::factory(),
             'relation_type' => fake()->randomElement([
                 DocumentRelationshipType::MergedInto,
-                DocumentRelationshipType::SplitFrom,
                 DocumentRelationshipType::AttachedTo,
                 DocumentRelationshipType::RelatedTo,
             ]),

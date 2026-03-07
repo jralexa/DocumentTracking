@@ -17,7 +17,7 @@
             'label' => 'Process Documents',
             'href' => Route::has('documents.queues.index') ? route('documents.queues.index') : null,
             'visible' => $canProcessDocuments,
-            'active' => request()->routeIs('documents.queues.*') || request()->routeIs('documents.split.*'),
+            'active' => request()->routeIs('documents.queues.*'),
         ],
         [
             'label' => 'Track Document',

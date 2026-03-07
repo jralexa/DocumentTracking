@@ -16,7 +16,6 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DocumentCustodyController;
 use App\Http\Controllers\DocumentListController;
 use App\Http\Controllers\DocumentQueueController;
-use App\Http\Controllers\DocumentSplitController;
 use App\Http\Controllers\DocumentTrackController;
 use App\Http\Controllers\DocumentWorkflowController;
 use App\Http\Controllers\GlobalSearchController;
@@ -76,8 +75,6 @@ Route::middleware(['auth', 'password.changed', 'can:documents.process'])->group(
     Route::post('/documents/{document}/forward', [DocumentWorkflowController::class, 'forward'])->name('documents.forward');
     Route::post('/documents/{document}/complete', [DocumentWorkflowController::class, 'complete'])->name('documents.complete');
     Route::post('/transfers/{transfer}/recall', [DocumentWorkflowController::class, 'recall'])->name('documents.recall');
-    Route::get('/documents/{document}/split', [DocumentSplitController::class, 'create'])->name('documents.split.create');
-    Route::post('/documents/{document}/split', [DocumentSplitController::class, 'store'])->name('documents.split.store');
 
     Route::prefix('custody')->name('custody.')->group(function () {
         Route::get('/originals', [DocumentCustodyController::class, 'originals'])->name('originals.index');

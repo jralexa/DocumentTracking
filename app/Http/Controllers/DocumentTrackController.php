@@ -39,7 +39,7 @@ class DocumentTrackController extends Controller
     }
 
     /**
-     * Find a document by base or split display tracking number.
+     * Find a document by base or display tracking number.
      */
     protected function findTrackableDocument(string $trackingNumber, bool $includeInternalDetails): ?Document
     {

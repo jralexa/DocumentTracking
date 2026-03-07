@@ -53,7 +53,7 @@ test('user can track document by base tracking number', function () {
         ->assertSee('Routing Timeline');
 });
 
-test('user can track split child by display tracking number', function () {
+test('user can track document by display tracking number', function () {
     $department = Department::factory()->create(['name' => 'HR']);
     $user = User::factory()->create(['role' => UserRole::Regular, 'department_id' => $department->id]);
 
@@ -65,8 +65,6 @@ test('user can track split child by display tracking number', function () {
         'current_department_id' => $department->id,
         'metadata' => [
             'display_tracking' => '260214033-A',
-            'split_suffix' => 'A',
-            'parent_tracking_number' => '260214033',
         ],
     ]);
 
